@@ -12,6 +12,7 @@ void rotateAndCrop();
 
 int gradeBubble(CacheView *cache, int x, int y);
 void gradeImg(Image *img, int maxQ);
+void drawOnAnswers(Image *img, CacheView *cache, int x, int y);
 
 ExceptionInfo *exception;
 ImageInfo *imageInfo;
@@ -99,11 +100,53 @@ void gradeImg(Image *img, int maxQ) {
 		int c = (int) i / 50;	//which column? each column is ~266 px apart
 		for(int j=0; j<5; j++) {	//which bubble? each bubble is 34 px apart
 			int x = baseX + c*266 + j*34;
-			int y = baseY + r*34;
+			int y = baseY + r*33;
 			int res = gradeBubble(cache, x, y);
 			if(res) {
 				printf("Question %d Bubble %c Filled\n", i+1, 'A' + j);
+				drawOnAnswers(img, cache, x, y);
 			}
 		}
 	}
+	writeImg(img, "../old/BoxedAnswers.jpg");
+}
+
+void drawOnAnswers(Image *img, CacheView *cache, int x, int y){
+
+	int pencilthreshold = 100;
+	int numbermarked = 0;
+	int diameter = 28;
+	int pixelCount = diameter * diameter;
+	//printf("starting x,y: %d, %d\n", x, y);
+	Quantum *p = GetCacheViewAuthenticPixels(cache, x, y, diameter, diameter, exception);
+	//Color the pixels found to be an answer red
+	for(int i = 0; i < pixelCount; i++) {
+		float rgb[3];
+		getRGB(&p[3*i], rgb);
+		if(rgb[0] < pencilthreshold && rgb[1] < pencilthreshold && rgb[2] < pencilthreshold) {
+			p[(3*i)] = QuantumRange;
+			p[(3*i)+1] = 0;
+			p[(3*i)+2] = 0;
+		}
+	}
+	//Draw the box around the answer
+	for(int i = 0; i < diameter; i++) {
+		p[(3*i)] = 0;
+		p[(3*i)+1] = 0;
+		p[(3*i)+2] = 0;
+		int leftSide = (3*diameter*i);
+		p[leftSide] = 0;
+		p[leftSide+1] = 0;
+		p[leftSide+2] = 0;
+		int rightSide = (3*diameter*i) + (3*(diameter-1));
+		p[rightSide] = 0;
+		p[rightSide+1] = 0;
+		p[rightSide+2] = 0;
+		int bottom = (3*i) + (3*diameter*(diameter-1));
+		p[bottom] = 0;
+		p[bottom+1] = 0;
+		p[bottom+2] = 0;
+	}
+	SyncCacheViewAuthenticPixels(cache, exception);
+
 }
