@@ -92,15 +92,15 @@ void rotateAndCrop() {
 
 void gradeImg(Image *img, int maxQ) {
 	CacheView *cache = AcquireAuthenticCacheView(img, exception);
-	int baseX = 105;
-	int baseY = 421;
+	int baseX = 106;
+	int baseY = 422;
 	//iterate over all questions
 	for(int i=0; i<maxQ; i++) {	//which question?
 		int r = i % 50;			//which row? each row is 34 pixels apart
 		int c = (int) i / 50;	//which column? each column is ~266 px apart
 		for(int j=0; j<5; j++) {	//which bubble? each bubble is 34 px apart
-			int x = baseX + c*266 + j*34;
-			int y = baseY + r*33;
+			int x = baseX + round(c*268) + j*34;
+			int y = baseY + (int) round(r*33.15);
 			int res = gradeBubble(cache, x, y);
 			if(res) {
 				printf("Question %d Bubble %c Filled\n", i+1, 'A' + j);
