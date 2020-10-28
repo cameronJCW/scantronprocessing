@@ -1,8 +1,6 @@
-mc
-This is a test question.
-B
-answer 1
-answer 2
-answer 3
-answer 4
-answer 5
+Q-This is a test question.
+A-answer 1
+A-answer 2
+A-answer 3
+X-answer 4
+A-answer 5
