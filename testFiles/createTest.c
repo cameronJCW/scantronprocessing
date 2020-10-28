@@ -1,4 +1,4 @@
-/*   Scantron Test Creation Tool  authors date email year
+/*   Scantron Test Creation Tool 
  *
  *   Cameron Wallace
  *   Oct 27, 2020
@@ -15,14 +15,17 @@
 /* Constants*/
 #define LEN 1024
 #define FORMS "ABCD"
+#define MAXLINES 55
 
 /* Prototypes */
+/* format: file -> char -> int*/
 int countQuestions(DIR *d, struct dirent *dir);
 char** loadQuestions(DIR *d, struct dirent *dir, int fileCount);
 
 void getClass(char* course);
-void generateExams(int questionC, int numF, char *course, char **fileList);
-void createExam(char *course, char **fileList, char form, int questionC);
+void generateExams(char **fileList, char *course, int questionC, int numF);
+void createExam(char **fileList, char *course, char form, int questionC);
+void parseQuestion(FILE *fp, FILE *afp, char **fileList, int questionC);
 void shuffle(int *array, size_t n);
 
 
@@ -60,16 +63,17 @@ int main(int argc, char **argv) {
   int fileCount;
   fileCount = countQuestions(d, dir);
   char ** fileList = loadQuestions(d, dir, fileCount);
-  for(int i=0;i<fileCount;i++) printf("%s\n", fileList[i]);
 
   /* Use filelist to create exams */
-  //int numQ, int numF, char *course, char **fileList
   questionC = (int) fmin(fileCount, atoi(argv[2]));
-  generateExams(questionC, formC, argv[1], fileList);
+  generateExams(fileList, argv[1], questionC, formC);
   
   return(0);
 }
 
+/* @author Cameron Wallace
+ * function: Return the total number of question files in directory
+ */
 int countQuestions(DIR *d, struct dirent *dir) {
   int fileCount = 0;
   int l;
@@ -82,11 +86,14 @@ int countQuestions(DIR *d, struct dirent *dir) {
       }
     }
   }
-  printf("files:%d\n", fileCount);
+  //printf("files:%d\n", fileCount);
   rewinddir(d);
   return fileCount;
 }
 
+/* @author Cameron Wallace
+ * function: Add names of question files to list
+ */
 char ** loadQuestions(DIR *d, struct dirent *dir, int fileCount) {
   int i = 0;
   int l;
@@ -105,22 +112,30 @@ char ** loadQuestions(DIR *d, struct dirent *dir, int fileCount) {
   return fileList;
 }
 
-void generateExams(int questionC, int numF, char *course, char **fileList) {
+/* @author Cameron Wallace
+ * function: Generate exam and key files
+ */
+void generateExams(char **fileList, char *course, int questionC, int numF) {
   //printf("generate\n");
   int i;
   for (i = 0; i < numF; i++) {
-    createExam(course, fileList, FORMS[i], questionC);
+    createExam(fileList, course, FORMS[i], questionC);
   }
   printf("done\n");
 }
 
-void createExam(char *course, char **fileList, char form, int questionC) {
-  FILE *fp, *texH, *texM, *texE, *cQ;
+/* @author Cameron Wallace
+ * function: Get contents from question file and write them to exam tex file,
+ *           record correct answers to key file 
+ */
+void createExam(char **fileList, char *course, char form, int questionC) {
+  FILE *fp, *afp, *texH, *texM, *texE;
   char c;
-  char buf[LEN], buf2[LEN];
-  int i, j;
-  snprintf(buf, sizeof(buf), "./exams/%s_%c", course, form);
+  char buf[LEN];
+  snprintf(buf, sizeof(buf), "./exams/%s_%c.tex", course, form);
   fp = fopen(buf, "w");
+  snprintf(buf, sizeof(buf), "./exams/%s_%c_key", course, form);
+  afp = fopen(buf, "w");
   texH = fopen("./texTemplate/head", "r");
   texM = fopen("./texTemplate/mid", "r");
   texE = fopen("./texTemplate/end", "r");
@@ -142,122 +157,113 @@ void createExam(char *course, char **fileList, char form, int questionC) {
   fclose(texH);
 
   /* Questions */
-  printf("questions%d\n", questionC);
-  for (i = 0; i < 1; i++) {
-    printf("i%d\n",i);
-    //char ** questionList = (char **)malloc((questionC) * sizeof(char *));
-    char questionList[questionC][LEN];
-    char correct;
-    int correctI;
-    snprintf(buf, sizeof(buf), "./questions/%s", fileList[i]);
-    cQ = fopen(buf, "r");
-    /* mc or tf : 8 or 5 lines to read */
-    fgets(buf, LEN, cQ);
-    if (buf[0] == 'm') {
-      fgets(buf2, LEN, cQ);
-      snprintf(buf, sizeof(buf), "\\item (3 points) %s", buf2);
-      fputs(buf, fp);
-      fputs("  \\begin{enumerate}\n", fp);
-      correct = fgetc(cQ);
-      /* A:0 B:1 C:2 D:3 E:4 */
-      switch(correct) {
-      case 'A':
-	correctI = 0; break;
-      case 'B':
-	correctI = 1; break;
-      case 'C':
-	correctI = 2; break;
-      case 'D':
-	correctI = 3; break;
-      case 'E':
-	correctI = 4; break;
-      }
-      /* Populate question list while keeping track of correct answer */
-      fgets(buf2, LEN, cQ);
-      for (j = 0; j < 5; j++) {
-	//printf("buf2pre: %s", buf2);
-	fgets(buf2, LEN, cQ);
-	if (j == correctI) {
-	  snprintf(buf, sizeof(buf), "@%s", buf2);
-	  strcpy(questionList[j], buf);
-	} else {
-	  strcpy(questionList[j], buf2);
-	}
-      }
-      /* Randomize order of list */
-      int rando[5] = { 0,1,2,3,4 };
-      shuffle(rando, 5);
-      int index;
-      for (j = 0; j < 5; j++) {
-	//printf("rando:%d", rando[j]);
-	index = rando[j];
-	snprintf(buf, sizeof(buf), "%s", questionList[index]);
-	//printf("%c\n", buf[sizeof(buf) -1]);
-	if (buf[0] == '@') {
-	  switch(j) {
-	  case 0: correct = 'a'; break;
-	  case 1: correct = 'b'; break;
-	  case 2: correct = 'c'; break;
-	  case 3: correct = 'd'; break;
-	  case 4: correct = 'e'; break;
-	  }
-	  char tmp[LEN];
-	  strcpy(tmp, buf+1);
-	  int t = strlen(tmp);
-	  if (tmp[t-1] == '\n') {
-	    tmp[t-1] = '\0';
-	  }
-	  printf("tmp: %s\n", tmp);
-	  snprintf(buf2, sizeof(buf2), "  \\item %s   \\ans{%c}\n", tmp, correct);
-	  printf("buf2: %s\n", buf2);
-	  fputs(buf2, fp);
-	} else {
-	  snprintf(buf2, sizeof(buf2), "  \\item %s", buf);
-	  fputs(buf2, fp);
-	}
-	printf("j:%d buf:%s", j, buf);
-      }
-      fputs("  \\end{enumerate}\n\n", fp);
-      printf("here\n");
-    }
-    //else if (buf[0] == 't') {
-
-    // }
-    // ERROR HANDLING -> point to misformatted question
-    /* get title */
-
-    /* get questions */
-
-    /* get answer */
-  }
+  parseQuestion(fp, afp, fileList, questionC);
   
   /* End */
+  c = fgetc(texE);
+  while (c != EOF) {
+    fputc(c, fp);
+    c = fgetc(texE);
+  }
+  fclose(texE);
+  
   fclose(fp);
 }
-/*
-  \item (3 points) The first function run in a C++ program is the function
-  \begin{enumerate}
-  \item main().  \ans{a}
-  \item cpp\_main().
-  \item win\_main().
-  \item start().
-  \item None of the above.
-  \end{enumerate}
+
+/* @author Cameron Wallace
+ * function: get contents from question file and write them to exam tex file,
+ *           record correct answers to key file 
  */
-void multipleChoice() {
-
-}
-
-/*
-\item (3 points) In C++, there is no way to have the compiler
-guarantee that an array passed into a function is not modified.
-  \begin{enumerate}
-  \item True
-  \item False  \ans{b}
-  \end{enumerate}
- */
-void trueFalse() {
-
+void parseQuestion(FILE *fp, FILE *afp, char **fileList, int questionC) {
+  int i, x;
+  char buf[LEN], buf2[LEN];
+  FILE *cQ;
+  for (i = 0; i < questionC; i++) {
+    int answers = 0;
+    snprintf(buf, sizeof(buf), "./questions/%s", fileList[i]);
+    /* current question */
+    cQ = fopen(buf, "r");
+    /* Count the number of answers in file */
+    while (fgets(buf, LEN, cQ) != NULL) {
+      if ((buf[0] == 'A' || buf[0] == 'X') && buf[1] == '-') {
+	answers++;
+      }
+    }
+    rewind(cQ);
+    /* Populate question list */
+    char questionList[answers][LEN];
+    int fill = 0;
+    while (fgets(buf, LEN, cQ) != NULL) {
+      if ((buf[0] == 'A' || buf[0] == 'X') && buf[1] == '-') {
+	strcpy(questionList[fill], buf);
+	fill++;
+      }
+    }
+    /* Randomize order of questions */
+    int rando[answers];
+    for (x = 0; x < answers; x++) {
+      rando[x] = x;
+      printf("for:ql=%s", questionList[x]);
+    }
+    shuffle(rando, answers);
+    /* Write to new file */
+    /* --In question or In verbatim */
+    int inQ = 0, inV = 0;
+    //char t = '\t';
+    rewind(cQ);
+    while (fgets(buf, LEN, cQ) != NULL) {
+      if (buf[0] == 'Q' && buf[1] == '-') {
+	inQ = 1;
+	snprintf(buf2, sizeof(buf2), "\\item (3 points) %s", buf + 2);
+	fputs(buf2, fp);
+      } else if (buf[0] == 'V' && buf[1] == '-' && !inV) {
+	inQ = 0; inV = 1;
+	snprintf(buf2, sizeof(buf2), "\\begin{verbatim}\n    %s", buf + 2);
+	fputs(buf2, fp);
+      } else if ((buf[0] == 'A' || buf[0] == 'X') && buf[1] == '-') {
+	if (inV == 1) {
+	  snprintf(buf2, sizeof(buf2), "\\end{verbatim}\n");
+	  fputs(buf2, fp);
+	}
+	inV = 0;
+	continue;
+      } else {
+	if (inQ) {
+	  fputs(buf, fp);
+	} else if (inV) {
+	  snprintf(buf2, sizeof(buf2), "    %s", buf);
+	  fputs(buf2, fp);
+	}
+      }
+    }
+    char correct;
+    fputs("  \\begin{enumerate}\n", fp);
+    for (x = 0; x < answers; x++) {
+      printf("floop ql[r[x]]: %s", questionList[x]);
+      if (questionList[rando[x]][0] == 'A') {   
+	snprintf(buf, sizeof(buf), "  \\item %s", questionList[rando[x]] + 2);
+	fputs(buf, fp);
+      } else if (questionList[rando[x]][0] == 'X') {
+	printf("found ans\n");
+	switch(x) {
+	case 0: correct = 'a'; break;
+	case 1: correct = 'b'; break;
+	case 2: correct = 'c'; break;
+	case 3: correct = 'd'; break;
+	case 4: correct = 'e'; break;
+	}
+	char tmp[LEN];
+	snprintf(buf, sizeof(buf), "  \\item %s", questionList[rando[x]] + 2);
+	strcpy(tmp, buf+1);
+	if (tmp[strlen(tmp) - 1] == '\n') {
+	  tmp[strlen(tmp) - 1] = '\0';
+	}
+	snprintf(buf2, sizeof(buf2), "  %s  \\ans{%c}\n", tmp + 1, correct);
+	fputs(buf2, fp);
+      }
+    }
+    fputs("  \\end{enumerate}\n\n", fp);
+  }
 }
 
 /* Arrange the N elements of ARRAY in random order.
