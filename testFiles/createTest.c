@@ -207,6 +207,16 @@ void createExam(char **fileList, char **courseInfo, char form, int questionC, in
   fclose(texH);
 
   /* Questions */
+  printf("%d\n", questionC);
+  int capacity = questionC / formC;
+  int overflow = questionC % formC;
+  int i;
+  for (i = (currentForm * capacity) + overflow; i++) {
+    //parse call
+  }
+  for (i = 0; i < (currentForm * capacity) + overflow; i++) {
+    //parse call
+  }
   parseQuestion(fp, afp, fileList, questionC, formC, currentForm);
   
   /* End */
@@ -228,10 +238,6 @@ void parseQuestion(FILE *fp, FILE *afp, char **fileList, int questionC, int form
   int i, x;
   char buf[LEN], buf2[LEN];
   FILE *cQ;
-  printf("%d\n", questionC);
-  int capacity = questionC / formC;
-  int overflow = questionC % formC;
-  printf("form:%d, cap: %d\n", currentForm, capacity);
   for (i = (currentForm * capacity) + overflow; i < questionC; i++) {
     int answers = 0;
     snprintf(buf, sizeof(buf), "./questions/%s", fileList[i]);
