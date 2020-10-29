@@ -71,7 +71,10 @@ int main(int argc, char **argv) {
   printf("%d\n", split);
   //char *** queue = generateQueue(fileList, questionC, formC, split);
   int x = formC; int y = (2 * split) - 1;
-  int (*queue)[y] = malloc(sizeof(int[x][y]));
+  //int (*queue)[y] = malloc(sizeof(int[x][y]));
+  int ** queue;
+  queue = malloc(x * sizeof *queue);
+  for (int i = 0; i < y; i++) queue[i] = malloc(y * sizeof *queue[i]);
   //genQueue(queue, questionC, formC, split, x, y);
   for (int i = 0; i < formC; i++) {
     for (int j = 0; j < split; j++) {
@@ -84,6 +87,7 @@ int main(int argc, char **argv) {
   return(0);
 }
 
+/*
 void genQueue(int ** queue, int questionC, int formC, int split, int x, int y) {
   printf("here%d\n", formC);
   //int **queue = (int **)malloc((formC) * sizeof(int *));
@@ -112,6 +116,7 @@ void genQueue(int ** queue, int questionC, int formC, int split, int x, int y) {
     }
   }
 }
+*/
 
 /* @author Cameron Wallace
  * function: Return the total number of question files in directory
