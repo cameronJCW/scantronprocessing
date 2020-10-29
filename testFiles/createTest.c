@@ -135,8 +135,6 @@ void createExam(FILE *key, char **fileList, char **courseInfo, char form, int qu
   char buf[LEN];
   snprintf(buf, sizeof(buf), "./%s/Book/%s/exam_%c.tex", courseInfo[0], courseInfo[1], form);
   fp = fopen(buf, "w");
-  //snprintf(buf, sizeof(buf), "./%s/Book/%s/exam_%c_key", courseInfo[0], courseInfo[1], form);
-  //afp = fopen(buf, "w");
   texH = fopen("./texTemplate/head", "r");
   texM = fopen("./texTemplate/mid", "r");
   texE = fopen("./texTemplate/end", "r");
@@ -220,7 +218,6 @@ void parseQuestion(FILE *fp, FILE *key, char **fileList, int questionC, int i) {
   /* Write to new file */
   /* --In question or In verbatim */
   int inQ = 0, inV = 0;
-  //char t = '\t';
   rewind(cQ);
   while (fgets(buf, LEN, cQ) != NULL) {
     if (buf[0] == 'Q' && buf[1] == '-') {
@@ -249,15 +246,23 @@ void parseQuestion(FILE *fp, FILE *key, char **fileList, int questionC, int i) {
   }
   char correct;
   fputs("  \\begin{enumerate}\n", fp);
-  char keyBuf[answers + 2];
+  /* Key Buffer Sizing */ 
+  int digits = 0;
+  if (0 <= i+1 && i+1 < 10) digits = 1;
+  if (10 <= i+1 && i+1 < 100) digits = 2;
+  char *keyBuf = malloc(10 * sizeof(char));
+  if (digits == 1) keyBuf[2] = (i + 1) + 48;
+  if (digits == 2 ) { keyBuf[2] = (((i + 1) / 10) % 10) + 48; keyBuf[3] = ((i + 1) % 10) + 48; }
+  keyBuf[1] = ' ';
+  keyBuf[digits + 2] = ':';
   for (x = 0; x < answers; x++) {
-    //printf("pre: %c\n", questionList[x][0]);
+    int xDigits = x + digits + 3;
     //if (questionList[rando[x]][0] == 'A') {
     if (questionList[x][0] == 'A') {   
       //snprintf(buf, sizeof(buf), "  \\item %s", questionList[rando[x]] + 2);
       snprintf(buf, sizeof(buf), "  \\item %s", questionList[x] + 2);
       fputs(buf, fp);
-      keyBuf[x+1] = (x+1) + 48;
+      keyBuf[xDigits] = (x+1) + 48;
       //} else if (questionList[rando[x]][0] == 'X') {
     } else if (questionList[x][0] == 'X') {
       switch(x) {
@@ -277,12 +282,13 @@ void parseQuestion(FILE *fp, FILE *key, char **fileList, int questionC, int i) {
       snprintf(buf2, sizeof(buf2), "  %s  \\ans{%c}\n", tmp + 1, correct);
       fputs(buf2, fp);
       keyBuf[0] = correct;
-      keyBuf[x+1] = (x+1) + 48;
+      keyBuf[xDigits] = (x+1) + 48;
     }
   }
   fputs("  \\end{enumerate}\n\n", fp);
-  snprintf(buf, sizeof(keyBuf) + 1, "%s\n", keyBuf);
-  fputs(buf, key);
+  char nl = '\n';
+  strncat(keyBuf, &nl, 1); 
+  fputs(keyBuf, key);
   fclose(cQ);
 }
 
