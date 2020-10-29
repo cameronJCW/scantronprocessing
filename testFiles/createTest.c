@@ -118,6 +118,8 @@ void generateExams(char **fileList, char **courseInfo, int questionC, int formC)
   char buf[LEN];
   snprintf(buf, sizeof(buf), "./%s/Book/%s/examKey", courseInfo[0], courseInfo[1]);
   key = fopen(buf, "w");
+  snprintf(buf, sizeof(buf), "%d\n%d\n", formC, questionC);
+  fputs(buf, key);
   for (i = 0; i < formC; i++) {
     createExam(key, fileList, courseInfo, FORMS[i], questionC, formC, i);
   }
