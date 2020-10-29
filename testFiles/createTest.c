@@ -23,8 +23,8 @@ int countQuestions(DIR *d, struct dirent *dir);
 char** loadQuestions(DIR *d, struct dirent *dir, int fileCount);
 
 void getClass(char* course);
-void generateExams(char **fileList, char *course, int questionC, int numF);
-void createExam(char **fileList, char *course, char form, int questionC);
+void generateExams(char **fileList, char **courseInfo, int questionC, int numF);
+void createExam(char **fileList, char **courseInfo, char form, int questionC);
 void parseQuestion(FILE *fp, FILE *afp, char **fileList, int questionC);
 void shuffle(int *array, size_t n);
 
@@ -33,29 +33,28 @@ void shuffle(int *array, size_t n);
 
 /* Usage: course exam_length num_forms */
 int main(int argc, char **argv) {
-  if (argc != 4) {
-    fprintf(stderr, "usage: ./createTest course num_questions num_forms\n");
+  if (argc != 5) {
+    fprintf(stderr, "usage: ./createTest course chapter num_questions num_forms\n");
     exit(0);
   }
   int questionC;
-  int formC = atoi(argv[3]);
+  int formC = atoi(argv[4]);
   if (0 >= formC || formC > 4) {
     fprintf(stderr, "usage: select between 1 and 4 forms.\n");
     exit(0);
   }
-  char cwd[LEN];
-  getcwd(cwd, sizeof(cwd));
-  if (getcwd(cwd, sizeof(cwd)) != NULL) {
-    printf("Current working dir: %s\n", cwd);
-  } else {
-    perror("getcwd() error\n");
-  }
-  
+  char **courseInfo;
+  courseInfo[0] = argv[1];
+  courseInfo[1] = argv[2];
   
   DIR *d;
   struct dirent *dir;
   /* d = opendir("/course/questions/"); add exam specific folder at some point */
-  if ((d = opendir(argv[1])) == NULL) {
+  char focusD[LEN];
+  //snprintf(focusD, sizeof(focusD),"./%s/Book/%s",courseInfo[0],courseInfo[1]);
+  snprintf(focusD, sizeof(focusD), "questions");
+  printf("%s\n", focusD);
+  if ((d = opendir(focusD)) == NULL) {
     perror("opendir() error\n");
   }
   
@@ -65,8 +64,11 @@ int main(int argc, char **argv) {
   char ** fileList = loadQuestions(d, dir, fileCount);
 
   /* Use filelist to create exams */
-  questionC = (int) fmin(fileCount, atoi(argv[2]));
-  generateExams(fileList, argv[1], questionC, formC);
+  questionC = (int) fmin(fileCount, atoi(argv[3]));
+  int split = questionC / formC;
+  
+  printf("%d\n", split);
+  generateExams(fileList, courseInfo, questionC, formC);
   
   return(0);
 }
@@ -115,11 +117,10 @@ char ** loadQuestions(DIR *d, struct dirent *dir, int fileCount) {
 /* @author Cameron Wallace
  * function: Generate exam and key files
  */
-void generateExams(char **fileList, char *course, int questionC, int numF) {
-  //printf("generate\n");
+void generateExams(char **fileList, char **courseInfo, int questionC, int numF) {
   int i;
   for (i = 0; i < numF; i++) {
-    createExam(fileList, course, FORMS[i], questionC);
+    createExam(fileList, courseInfo, FORMS[i], questionC);
   }
   printf("done\n");
 }
@@ -128,13 +129,13 @@ void generateExams(char **fileList, char *course, int questionC, int numF) {
  * function: Get contents from question file and write them to exam tex file,
  *           record correct answers to key file 
  */
-void createExam(char **fileList, char *course, char form, int questionC) {
+void createExam(char **fileList, char **courseInfo, char form, int questionC) {
   FILE *fp, *afp, *texH, *texM, *texE;
   char c;
   char buf[LEN];
-  snprintf(buf, sizeof(buf), "./exams/%s_%c.tex", course, form);
+  snprintf(buf, sizeof(buf), "./%s/Book/%s/exam_%c.tex", courseInfo[0], courseInfo[1], form);
   fp = fopen(buf, "w");
-  snprintf(buf, sizeof(buf), "./exams/%s_%c_key", course, form);
+  snprintf(buf, sizeof(buf), "./%s/Book/%s/exam_%c_key", courseInfo[0], courseInfo[1], form);
   afp = fopen(buf, "w");
   texH = fopen("./texTemplate/head", "r");
   texM = fopen("./texTemplate/mid", "r");
@@ -175,9 +176,11 @@ void createExam(char **fileList, char *course, char form, int questionC) {
  *           record correct answers to key file 
  */
 void parseQuestion(FILE *fp, FILE *afp, char **fileList, int questionC) {
+  
   int i, x;
   char buf[LEN], buf2[LEN];
   FILE *cQ;
+  printf("%d\n", questionC);
   for (i = 0; i < questionC; i++) {
     int answers = 0;
     snprintf(buf, sizeof(buf), "./questions/%s", fileList[i]);
@@ -201,10 +204,6 @@ void parseQuestion(FILE *fp, FILE *afp, char **fileList, int questionC) {
     }
     /* Randomize order of questions */
     int rando[answers];
-    for (x = 0; x < answers; x++) {
-      rando[x] = x;
-      printf("for:ql=%s", questionList[x]);
-    }
     shuffle(rando, answers);
     /* Write to new file */
     /* --In question or In verbatim */
@@ -239,12 +238,14 @@ void parseQuestion(FILE *fp, FILE *afp, char **fileList, int questionC) {
     char correct;
     fputs("  \\begin{enumerate}\n", fp);
     for (x = 0; x < answers; x++) {
-      printf("floop ql[r[x]]: %s", questionList[x]);
-      if (questionList[rando[x]][0] == 'A') {   
-	snprintf(buf, sizeof(buf), "  \\item %s", questionList[rando[x]] + 2);
+      //printf("pre: %c\n", questionList[x][0]);
+      //if (questionList[rando[x]][0] == 'A') {
+      if (questionList[x][0] == 'A') {   
+	//snprintf(buf, sizeof(buf), "  \\item %s", questionList[rando[x]] + 2);
+	snprintf(buf, sizeof(buf), "  \\item %s", questionList[x] + 2);
 	fputs(buf, fp);
-      } else if (questionList[rando[x]][0] == 'X') {
-	printf("found ans\n");
+	//} else if (questionList[rando[x]][0] == 'X') {
+      } else if (questionList[x][0] == 'X') {
 	switch(x) {
 	case 0: correct = 'a'; break;
 	case 1: correct = 'b'; break;
@@ -253,7 +254,8 @@ void parseQuestion(FILE *fp, FILE *afp, char **fileList, int questionC) {
 	case 4: correct = 'e'; break;
 	}
 	char tmp[LEN];
-	snprintf(buf, sizeof(buf), "  \\item %s", questionList[rando[x]] + 2);
+	//snprintf(buf, sizeof(buf), "  \\item %s", questionList[rando[x]] + 2);
+	snprintf(buf, sizeof(buf), "  \\item %s", questionList[x] + 2);
 	strcpy(tmp, buf+1);
 	if (tmp[strlen(tmp) - 1] == '\n') {
 	  tmp[strlen(tmp) - 1] = '\0';
@@ -265,6 +267,18 @@ void parseQuestion(FILE *fp, FILE *afp, char **fileList, int questionC) {
     fputs("  \\end{enumerate}\n\n", fp);
   }
 }
+
+/*
+  1 form: no split
+  2 forms: 1
+  3 forms: 2
+  4 forms: 3
+  for each form, push one more segment to end from previous
+  queue:
+  - queue item: questions equal to 1/2, 1/3, or 1/4 of total
+  - for b: pop and push once, c: pop and push twice, etc.
+  - 
+ */
 
 /* Arrange the N elements of ARRAY in random order.
    Taken from Ben Pfaff: CITE THIS MAN!
