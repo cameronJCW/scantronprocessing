@@ -21,9 +21,11 @@
 /* format: file -> char -> int*/
 int countQuestions(DIR *d, struct dirent *dir);
 char** loadQuestions(DIR *d, struct dirent *dir, int fileCount);
+char*** generateQueue(char ** fileList, int fileCount, int formC, int split);
+void genQueue(int ** queue, int questionC, int formC, int split, int x, int y);
 
 void getClass(char* course);
-void generateExams(char **fileList, char **courseInfo, int questionC, int numF);
+void generateExams(char **fileList, char **courseInfo, int questionC, int formC);
 void createExam(char **fileList, char **courseInfo, char form, int questionC);
 void parseQuestion(FILE *fp, FILE *afp, char **fileList, int questionC);
 void shuffle(int *array, size_t n);
@@ -53,7 +55,6 @@ int main(int argc, char **argv) {
   char focusD[LEN];
   //snprintf(focusD, sizeof(focusD),"./%s/Book/%s",courseInfo[0],courseInfo[1]);
   snprintf(focusD, sizeof(focusD), "questions");
-  printf("%s\n", focusD);
   if ((d = opendir(focusD)) == NULL) {
     perror("opendir() error\n");
   }
@@ -66,11 +67,50 @@ int main(int argc, char **argv) {
   /* Use filelist to create exams */
   questionC = (int) fmin(fileCount, atoi(argv[3]));
   int split = questionC / formC;
-  
+
   printf("%d\n", split);
+  //char *** queue = generateQueue(fileList, questionC, formC, split);
+  int x = formC; int y = (2 * split) - 1;
+  int (*queue)[y] = malloc(sizeof(int[x][y]));
+  //genQueue(queue, questionC, formC, split, x, y);
+  for (int i = 0; i < formC; i++) {
+    for (int j = 0; j < split; j++) {
+      printf("%d\n", queue[i][j]);
+    }
+  }
+
   generateExams(fileList, courseInfo, questionC, formC);
   
   return(0);
+}
+
+void genQueue(int ** queue, int questionC, int formC, int split, int x, int y) {
+  printf("here%d\n", formC);
+  //int **queue = (int **)malloc((formC) * sizeof(int *));
+  int i = 0;
+  int cur = 0;
+  int index = 0;
+  int overflow = questionC % formC;
+  int newC = questionC - overflow;
+  int capacity = newC / formC;
+  
+  while (i < formC) {
+    printf("index:%d\n", index);
+    if (i == (formC - 1)) {
+      queue[i][cur++] = index++;
+      if (index >= questionC) {
+	break;
+      }
+    }
+    else {
+      queue[i][cur++] = index++;
+      printf("e\n");
+      if (cur >= capacity) {
+	cur = 0;
+	i++;
+      }
+    }
+  }
 }
 
 /* @author Cameron Wallace
@@ -114,12 +154,32 @@ char ** loadQuestions(DIR *d, struct dirent *dir, int fileCount) {
   return fileList;
 }
 
+/*
+char *** generateQueue(char ** fileList, int fileCount, int formC, int split) {
+  //char *** fileQueue = (char ***) malloc((fileCount) * sizeof(char *));
+  char *fileQueue[formC][];
+  char buf[LEN];
+  int currSplit = 0;
+  int currFile = 0;
+  for (int i = 0; i < formC; i++) {
+    printf("cs + s = %d\n", (currSplit + split));
+    for (int j = 0; j < (currSplit + split); j++) {
+      snprintf(buf, sizeof(buf), fileList[currFile]);
+      strcpy(fileQueue[i][j], buf);
+      //fileQueue[i][j] = fileList[currFile];
+      currFile++;
+    }
+    currSplit += split;
+  }
+  return fileQueue;
+}
+*/
 /* @author Cameron Wallace
  * function: Generate exam and key files
  */
-void generateExams(char **fileList, char **courseInfo, int questionC, int numF) {
+void generateExams(char **fileList, char **courseInfo, int questionC, int formC) {
   int i;
-  for (i = 0; i < numF; i++) {
+  for (i = 0; i < formC; i++) {
     createExam(fileList, courseInfo, FORMS[i], questionC);
   }
   printf("done\n");
@@ -176,7 +236,6 @@ void createExam(char **fileList, char **courseInfo, char form, int questionC) {
  *           record correct answers to key file 
  */
 void parseQuestion(FILE *fp, FILE *afp, char **fileList, int questionC) {
-  
   int i, x;
   char buf[LEN], buf2[LEN];
   FILE *cQ;
@@ -202,6 +261,7 @@ void parseQuestion(FILE *fp, FILE *afp, char **fileList, int questionC) {
 	fill++;
       }
     }
+
     /* Randomize order of questions */
     int rando[answers];
     shuffle(rando, answers);
