@@ -24,10 +24,9 @@ char** loadQuestions(DIR *d, struct dirent *dir, int fileCount);
 
 void getClass(char* course);
 void generateExams(char **fileList, char **courseInfo, int questionC, int formC);
-void createExam(char **fileList, char **courseInfo, char form, int questionC, int formC, int currentForm);
+void createExam(FILE *key, char **fileList, char **courseInfo, char form, int questionC, int formC, int currentForm);
 void parseQuestion(FILE *fp, FILE *afp, char **fileList, int questionC, int i);
 void shuffle(int *array, size_t n);
-
 
 /* Globals */
 
@@ -70,37 +69,6 @@ int main(int argc, char **argv) {
   return(0);
 }
 
-/*
-void genQueue(int ** queue, int questionC, int formC, int split, int x, int y) {
-  printf("here%d\n", formC);
-  //int **queue = (int **)malloc((formC) * sizeof(int *));
-  int i = 0;
-  int cur = 0;
-  int index = 0;
-  int overflow = questionC % formC;
-  int newC = questionC - overflow;
-  int capacity = newC / formC;
-  
-  while (i < formC) {
-    printf("index:%d\n", index);
-    if (i == (formC - 1)) {
-      queue[i][cur++] = index++;
-      if (index >= questionC) {
-	break;
-      }
-    }
-    else {
-      queue[i][cur++] = index++;
-      printf("e\n");
-      if (cur >= capacity) {
-	cur = 0;
-	i++;
-      }
-    }
-  }
-}
-*/
-
 /* @author Cameron Wallace
  * function: Return the total number of question files in directory
  */
@@ -116,7 +84,6 @@ int countQuestions(DIR *d, struct dirent *dir) {
       }
     }
   }
-  //printf("files:%d\n", fileCount);
   rewinddir(d);
   return fileCount;
 }
@@ -142,49 +109,34 @@ char ** loadQuestions(DIR *d, struct dirent *dir, int fileCount) {
   return fileList;
 }
 
-/*
-char *** generateQueue(char ** fileList, int fileCount, int formC, int split) {
-  //char *** fileQueue = (char ***) malloc((fileCount) * sizeof(char *));
-  char *fileQueue[formC][];
-  char buf[LEN];
-  int currSplit = 0;
-  int currFile = 0;
-  for (int i = 0; i < formC; i++) {
-    printf("cs + s = %d\n", (currSplit + split));
-    for (int j = 0; j < (currSplit + split); j++) {
-      snprintf(buf, sizeof(buf), fileList[currFile]);
-      strcpy(fileQueue[i][j], buf);
-      //fileQueue[i][j] = fileList[currFile];
-      currFile++;
-    }
-    currSplit += split;
-  }
-  return fileQueue;
-}
-*/
 /* @author Cameron Wallace
  * function: Generate exam and key files
  */
 void generateExams(char **fileList, char **courseInfo, int questionC, int formC) {
   int i;
+  FILE *key;
+  char buf[LEN];
+  snprintf(buf, sizeof(buf), "./%s/Book/%s/examKey", courseInfo[0], courseInfo[1]);
+  key = fopen(buf, "w");
   for (i = 0; i < formC; i++) {
-    createExam(fileList, courseInfo, FORMS[i], questionC, formC, i);
+    createExam(key, fileList, courseInfo, FORMS[i], questionC, formC, i);
   }
   printf("done\n");
+  fclose(key);
 }
 
 /* @author Cameron Wallace
  * function: Get contents from question file and write them to exam tex file,
  *           record correct answers to key file 
  */
-void createExam(char **fileList, char **courseInfo, char form, int questionC, int formC, int currentForm) {
-  FILE *fp, *afp, *texH, *texM, *texE;
+void createExam(FILE *key, char **fileList, char **courseInfo, char form, int questionC, int formC, int currentForm) {
+  FILE *fp, *texH, *texM, *texE;
   char c;
   char buf[LEN];
   snprintf(buf, sizeof(buf), "./%s/Book/%s/exam_%c.tex", courseInfo[0], courseInfo[1], form);
   fp = fopen(buf, "w");
-  snprintf(buf, sizeof(buf), "./%s/Book/%s/exam_%c_key", courseInfo[0], courseInfo[1], form);
-  afp = fopen(buf, "w");
+  //snprintf(buf, sizeof(buf), "./%s/Book/%s/exam_%c_key", courseInfo[0], courseInfo[1], form);
+  //afp = fopen(buf, "w");
   texH = fopen("./texTemplate/head", "r");
   texM = fopen("./texTemplate/mid", "r");
   texE = fopen("./texTemplate/end", "r");
@@ -207,14 +159,17 @@ void createExam(char **fileList, char **courseInfo, char form, int questionC, in
 
   /* Questions */
   printf("form: %c\n", form);
+  /* Declare start of form in key file */
+  snprintf(buf, sizeof(buf), "Form_%c\n", form);
+  fputs(buf, key);
   int capacity = questionC / formC;
-  int overflow = questionC % formC;
+  //int overflow = questionC % formC;
   int i;
   for (i = (currentForm * capacity); i < questionC; i++) {
-    parseQuestion(fp, afp, fileList, questionC, i);
+    parseQuestion(fp, key, fileList, questionC, i);
   }
   for (i = 0; i < (currentForm * capacity); i++) {
-    parseQuestion(fp, afp, fileList, questionC, i);
+    parseQuestion(fp, key, fileList, questionC, i);
   }
 
   
@@ -233,7 +188,7 @@ void createExam(char **fileList, char **courseInfo, char form, int questionC, in
  * function: get contents from question file and write them to exam tex file,
  *           record correct answers to key file 
  */
-void parseQuestion(FILE *fp, FILE *afp, char **fileList, int questionC, int i) {
+void parseQuestion(FILE *fp, FILE *key, char **fileList, int questionC, int i) {
   int x;
   char buf[LEN], buf2[LEN];
   FILE *cQ;
@@ -294,6 +249,7 @@ void parseQuestion(FILE *fp, FILE *afp, char **fileList, int questionC, int i) {
   }
   char correct;
   fputs("  \\begin{enumerate}\n", fp);
+  char keyBuf[answers + 2];
   for (x = 0; x < answers; x++) {
     //printf("pre: %c\n", questionList[x][0]);
     //if (questionList[rando[x]][0] == 'A') {
@@ -301,6 +257,7 @@ void parseQuestion(FILE *fp, FILE *afp, char **fileList, int questionC, int i) {
       //snprintf(buf, sizeof(buf), "  \\item %s", questionList[rando[x]] + 2);
       snprintf(buf, sizeof(buf), "  \\item %s", questionList[x] + 2);
       fputs(buf, fp);
+      keyBuf[x+1] = (x+1) + 48;
       //} else if (questionList[rando[x]][0] == 'X') {
     } else if (questionList[x][0] == 'X') {
       switch(x) {
@@ -319,9 +276,13 @@ void parseQuestion(FILE *fp, FILE *afp, char **fileList, int questionC, int i) {
       }
       snprintf(buf2, sizeof(buf2), "  %s  \\ans{%c}\n", tmp + 1, correct);
       fputs(buf2, fp);
+      keyBuf[0] = correct;
+      keyBuf[x+1] = (x+1) + 48;
     }
   }
   fputs("  \\end{enumerate}\n\n", fp);
+  snprintf(buf, sizeof(keyBuf) + 1, "%s\n", keyBuf);
+  fputs(buf, key);
   fclose(cQ);
 }
 
