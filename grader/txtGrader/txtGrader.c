@@ -63,13 +63,26 @@ int main(int argc, char **argv) {
 		char *essayQ = ans;
 
 		int numCorrect = 0;
+		int currentQ = 1;
+		char multipleFlag[400];
+		bzero(multipleFlag, strlen(multipleFlag));
 		while(fgets(keyAns, MAXLINE, keyFile) != NULL){
 			fgets(ans, MAXLINE, testFile);
-			if(strcmp(ans, keyAns)==0){
+			if(strlen(ans) > 2){
+				char str[10];
+				bzero(str, sizeof(str));
+				snprintf(str, sizeof(str), "%d ", currentQ);
+				strcat(multipleFlag, str);
+			}else if(strcmp(ans, keyAns)==0){
 				numCorrect++;
 			}
+			currentQ++;
 		}
-		fprintf(gradeFile, "%s,%d\n", wNum, numCorrect);
+		if(strlen(multipleFlag)>0){
+			fprintf(gradeFile, "%s,%d, Bad Input For: %s\n", wNum, numCorrect, multipleFlag);
+		}else{
+			fprintf(gradeFile, "%s,%d\n", wNum, numCorrect);
+		}
 		fclose(testFile);
 		fclose(keyFile);
 	}
