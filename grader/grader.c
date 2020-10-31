@@ -13,7 +13,8 @@ void rotateAndCrop();
 int readBubble(CacheView *cache, int x, int y);
 void processImg(Image *img, int maxQ);
 char **getAnswers(Image *img, CacheView *cache, int maxQ, int baseX, int baseY);
-char **getMetaInfo(Image *img, CacheView *cache, int baseX, int baseY);
+char **getMetaInfo(Image *img, CacheView *cache);
+char *getVerticalItem(Image *img, CacheView *cache, int entries, int baseX, int baseY, int form);
 void drawOnAnswers(Image *img, CacheView *cache, int x, int y);
 
 ExceptionInfo *exception;
@@ -108,16 +109,54 @@ void rotateAndCrop() {
 
 void processImg(Image *img, int maxQ) {
 	CacheView *cache = AcquireAuthenticCacheView(img, exception);
-	int baseX = 95;
-	int baseY = 446;
-	char **answers = getAnswers(img, cache, maxQ, baseX, baseY);
+	char **answers = getAnswers(img, cache, maxQ, 95, 446);
+	char **meta = getMetaInfo(img, cache);
 	if(DEBUG) {
 		writeImg(img, "../TestOut/BoxedAnswers.jpg");
 	}
 }
 
-char **getMetaInfo(Image *img, CacheView *cache, int baseX, int baseY) {
+char **getMetaInfo(Image *img, CacheView *cache) {
+	char **info = malloc(sizeof(char *) * 3);
+	info[0] = getVerticalItem(img, cache, 8, 460, 80, 0);
+	info[1] = getVerticalItem(img, cache, 1, 861, 80, 1);
+	info[2] = getVerticalItem(img, cache, 3, 962, 80, 0);
+	printf("W Number: %s\n", info[0]);
+	printf("Test Form: %s\n", info[1]);
+	printf("Essay: %s\n", info[2]);
 	return NULL;
+}
+
+char *getVerticalItem(Image *img, CacheView *cache, int entries, int baseX, int baseY, int form) {
+	char *item = malloc(sizeof(char) * entries);
+	for(int i=0; i<entries; i++) {
+		char *fill = malloc(sizeof(char *) * 2);
+		strncpy(fill, "0\0", 2);
+		int rows = 10;
+		if(form) {
+			rows = 4;
+		}
+		for(int j=0; j<rows; j++) {
+			int x = baseX + round(i*33.5);
+			int y = baseY + (int) round(j*33.28);
+			int res = readBubble(cache, x, y);
+			if(res) {
+				if(form) {
+					fill[0] = 'A' + j;
+				} else {
+					fill[0] = '0' + j;
+				}
+				strncpy(&item[i], fill, 10-j);
+				if(DEBUG) {
+					printf("Entry %d Bubble %c Filled\n", i+1, '0' + j);
+				}
+			}
+			if(DEBUG) {
+				drawOnAnswers(img, cache, x, y);
+			}
+		}
+	}
+	return item;
 }
 
 char **getAnswers(Image *img, CacheView *cache, int maxQ, int baseX, int baseY) {
