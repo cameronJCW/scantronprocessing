@@ -11,7 +11,7 @@ void writeImg(Image *out, const char *name);
 void rotateAndCrop();
 
 int readBubble(CacheView *cache, int x, int y);
-void processImg(Image *img, int maxQ);
+void processImg(Image *img, int maxQ, FILE *file);
 char **getAnswers(Image *img, CacheView *cache, int maxQ, int baseX, int baseY);
 char **getMetaInfo(Image *img, CacheView *cache);
 char *getVerticalItem(Image *img, CacheView *cache, int entries, int baseX, int baseY, int form);
@@ -39,7 +39,8 @@ int main(int argc, char **argv) {
 	MagickCoreGenesis(cwd, (MagickBooleanType) 1);
 	readImg(imgPath);
 	rotateAndCrop();
-	processImg(img, 200);
+	FILE *out = fopen("../TestOut/out.txt", "w+");
+	processImg(img, 200, out);
 	MagickCoreTerminus();
 }
 
@@ -107,12 +108,24 @@ void rotateAndCrop() {
 	}
 }
 
-void processImg(Image *img, int maxQ) {
+void processImg(Image *img, int maxQ, FILE *file) {
 	CacheView *cache = AcquireAuthenticCacheView(img, exception);
 	char **answers = getAnswers(img, cache, maxQ, 95, 446);
 	char **meta = getMetaInfo(img, cache);
+
 	if(DEBUG) {
 		writeImg(img, "../TestOut/BoxedAnswers.jpg");
+	}
+
+	fprintf(file, "W%s\n", meta[0]);
+	fprintf(file, "%s\n", meta[1]);
+	fprintf(file, "%s\n", meta[2]);
+	for(int i=0; i<maxQ; i++) {
+		if(answers[i][0]) {
+			fprintf(file, "%s\n", answers[i]);
+		} else {
+			fprintf(file, "-\n");
+		}
 	}
 }
 
@@ -121,10 +134,7 @@ char **getMetaInfo(Image *img, CacheView *cache) {
 	info[0] = getVerticalItem(img, cache, 8, 460, 80, 0);
 	info[1] = getVerticalItem(img, cache, 1, 861, 80, 1);
 	info[2] = getVerticalItem(img, cache, 3, 962, 80, 0);
-	printf("W Number: %s\n", info[0]);
-	printf("Test Form: %s\n", info[1]);
-	printf("Essay: %s\n", info[2]);
-	return NULL;
+	return info;
 }
 
 char *getVerticalItem(Image *img, CacheView *cache, int entries, int baseX, int baseY, int form) {
@@ -169,7 +179,7 @@ char **getAnswers(Image *img, CacheView *cache, int maxQ, int baseX, int baseY) 
 		int answerIdx = 0;
 		for(int j=0; j<5; j++) {	//which bubble? each bubble is 34 px apart
 			if(j == 0) {
-				answers[i] = malloc(sizeof(char *) * 20);
+				answers[i] = calloc(20, sizeof(char *));
 			}
 			int x = baseX + round(c*266) + round(j*33.5);
 			int y = baseY + (int) round(r*33.28);
