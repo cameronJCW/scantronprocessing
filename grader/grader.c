@@ -17,15 +17,26 @@ void drawOnAnswers(Image *img, CacheView *cache, int x, int y);
 ExceptionInfo *exception;
 ImageInfo *imageInfo;
 Image *img;
+short DEBUG;
 
+//arg1: path to scantron img, arg2: T/F debug flag
 int main(int argc, char **argv) {
+	char imgPath[1000];
+	if(argc < 2) {
+		//error
+		fprintf(stderr, "To few arguments:\n");
+		exit(1);
+	} else {
+		strncpy(imgPath, argv[1], 1000);
+	}
+	DEBUG = argc >= 2 && argv[2][0] == 'T';
+
 	char cwd[1024];
-    getcwd(cwd, sizeof(cwd));
-    //printf("CWD: %s\n", cwd);
+	getcwd(cwd, sizeof(cwd));
 	MagickCoreGenesis(cwd, (MagickBooleanType) 1);
-	readImg("../old/ScanTron-1.jpg");
+	readImg(imgPath);
 	rotateAndCrop();
-	gradeImg(img, 199);
+	gradeImg(img, 200);
 	MagickCoreTerminus();
 }
 
@@ -37,7 +48,7 @@ void getRGB(Quantum *pixel, float rgb[3]) {
 
 //based on scntrn.c:gradeBubble()
 int gradeBubble(CacheView *cache, int x, int y) {
-	int pencilthreshold = 100;
+	int pencilthreshold = 150;
 	int numbermarked = 0;
 
 	int diameter = 28;
@@ -85,35 +96,41 @@ void writeImg(Image *out, const char *name) {
 }
 
 void rotateAndCrop() {
-	DefineImageProperty(img, "auto-crop=true", exception);
-	img = DeskewImage(img, 0, exception);
-	//writeImg(img, "fixed.jpg");
+	DefineImageProperty(img, "deskew:auto-crop", exception);
+	img = DeskewImage(img, 1, exception);
+	img = ScaleImage(img, 1200, 2200, exception);
+	if(DEBUG) {
+		writeImg(img, "../TestOut/fixed.jpg");
+	}
 }
 
 void gradeImg(Image *img, int maxQ) {
 	CacheView *cache = AcquireAuthenticCacheView(img, exception);
-	int baseX = 106;
-	int baseY = 422;
+	int baseX = 95;
+	int baseY = 446;
 	//iterate over all questions
 	for(int i=0; i<maxQ; i++) {	//which question?
 		int r = i % 50;			//which row? each row is 34 pixels apart
 		int c = (int) i / 50;	//which column? each column is ~266 px apart
 		for(int j=0; j<5; j++) {	//which bubble? each bubble is 34 px apart
-			int x = baseX + round(c*268) + j*34;
-			int y = baseY + (int) round(r*33.15);
+			int x = baseX + round(c*266) + round(j*33.5);
+			int y = baseY + (int) round(r*33.28);
 			int res = gradeBubble(cache, x, y);
-			if(res) {
+			if(res && DEBUG) {
 				printf("Question %d Bubble %c Filled\n", i+1, 'A' + j);
+			}
+			if(DEBUG) {
 				drawOnAnswers(img, cache, x, y);
 			}
 		}
 	}
-	writeImg(img, "../old/BoxedAnswers.jpg");
+	if(DEBUG) {
+		writeImg(img, "../TestOut/BoxedAnswers.jpg");
+	}
 }
 
 void drawOnAnswers(Image *img, CacheView *cache, int x, int y){
-
-	int pencilthreshold = 100;
+	int pencilthreshold = 150;
 	int numbermarked = 0;
 	int diameter = 28;
 	int pixelCount = diameter * diameter;
