@@ -10,8 +10,11 @@ void readImg(const char *name);
 void writeImg(Image *out, const char *name);
 void rotateAndCrop();
 
-int gradeBubble(CacheView *cache, int x, int y);
-void gradeImg(Image *img, int maxQ);
+int readBubble(CacheView *cache, int x, int y);
+void processImg(Image *img, int maxQ, FILE *file);
+char **getAnswers(Image *img, CacheView *cache, int maxQ, int baseX, int baseY);
+char **getMetaInfo(Image *img, CacheView *cache);
+char *getVerticalItem(Image *img, CacheView *cache, int entries, int baseX, int baseY, int form);
 void drawOnAnswers(Image *img, CacheView *cache, int x, int y);
 
 ExceptionInfo *exception;
@@ -36,7 +39,8 @@ int main(int argc, char **argv) {
 	MagickCoreGenesis(cwd, (MagickBooleanType) 1);
 	readImg(imgPath);
 	rotateAndCrop();
-	gradeImg(img, 200);
+	FILE *out = fopen("../TestOut/out.txt", "w+");
+	processImg(img, 200, out);
 	MagickCoreTerminus();
 }
 
@@ -47,7 +51,7 @@ void getRGB(Quantum *pixel, float rgb[3]) {
 }
 
 //based on scntrn.c:gradeBubble()
-int gradeBubble(CacheView *cache, int x, int y) {
+int readBubble(CacheView *cache, int x, int y) {
 	int pencilthreshold = 150;
 	int numbermarked = 0;
 
@@ -104,29 +108,95 @@ void rotateAndCrop() {
 	}
 }
 
-void gradeImg(Image *img, int maxQ) {
+void processImg(Image *img, int maxQ, FILE *file) {
 	CacheView *cache = AcquireAuthenticCacheView(img, exception);
-	int baseX = 95;
-	int baseY = 446;
-	//iterate over all questions
-	for(int i=0; i<maxQ; i++) {	//which question?
-		int r = i % 50;			//which row? each row is 34 pixels apart
-		int c = (int) i / 50;	//which column? each column is ~266 px apart
-		for(int j=0; j<5; j++) {	//which bubble? each bubble is 34 px apart
-			int x = baseX + round(c*266) + round(j*33.5);
-			int y = baseY + (int) round(r*33.28);
-			int res = gradeBubble(cache, x, y);
-			if(res && DEBUG) {
-				printf("Question %d Bubble %c Filled\n", i+1, 'A' + j);
+	char **answers = getAnswers(img, cache, maxQ, 95, 446);
+	char **meta = getMetaInfo(img, cache);
+
+	if(DEBUG) {
+		writeImg(img, "../TestOut/BoxedAnswers.jpg");
+	}
+
+	fprintf(file, "W%s\n", meta[0]);
+	fprintf(file, "%s\n", meta[1]);
+	fprintf(file, "%s\n", meta[2]);
+	for(int i=0; i<maxQ; i++) {
+		if(answers[i][0]) {
+			fprintf(file, "%s\n", answers[i]);
+		} else {
+			fprintf(file, "-\n");
+		}
+	}
+}
+
+char **getMetaInfo(Image *img, CacheView *cache) {
+	char **info = malloc(sizeof(char *) * 3);
+	info[0] = getVerticalItem(img, cache, 8, 460, 80, 0);
+	info[1] = getVerticalItem(img, cache, 1, 861, 80, 1);
+	info[2] = getVerticalItem(img, cache, 3, 962, 80, 0);
+	return info;
+}
+
+char *getVerticalItem(Image *img, CacheView *cache, int entries, int baseX, int baseY, int form) {
+	char *item = malloc(sizeof(char) * entries);
+	for(int i=0; i<entries; i++) {
+		char *fill = malloc(sizeof(char *) * 2);
+		strncpy(fill, "0\0", 2);
+		int rows = 10;
+		if(form) {
+			rows = 4;
+		}
+		for(int j=0; j<rows; j++) {
+			int x = baseX + round(i*33.5);
+			int y = baseY + (int) round(j*33.28);
+			int res = readBubble(cache, x, y);
+			if(res) {
+				if(form) {
+					fill[0] = 'A' + j;
+				} else {
+					fill[0] = '0' + j;
+				}
+				strncpy(&item[i], fill, 10-j);
+				if(DEBUG) {
+					printf("Entry %d Bubble %c Filled\n", i+1, '0' + j);
+				}
 			}
 			if(DEBUG) {
 				drawOnAnswers(img, cache, x, y);
 			}
 		}
 	}
-	if(DEBUG) {
-		writeImg(img, "../TestOut/BoxedAnswers.jpg");
+	return item;
+}
+
+char **getAnswers(Image *img, CacheView *cache, int maxQ, int baseX, int baseY) {
+	char **answers = malloc(sizeof(char *) * maxQ);
+	char bubbles[5][3] = {"A \0", "B \0", "C \0", "D \0", "E \0"};
+	//iterate over all questions
+	for(int i=0; i<maxQ; i++) {	//which question?
+		int r = i % 50;			//which row? each row is 34 pixels apart
+		int c = (int) i / 50;	//which column? each column is ~266 px apart
+		int answerIdx = 0;
+		for(int j=0; j<5; j++) {	//which bubble? each bubble is 34 px apart
+			if(j == 0) {
+				answers[i] = calloc(20, sizeof(char *));
+			}
+			int x = baseX + round(c*266) + round(j*33.5);
+			int y = baseY + (int) round(r*33.28);
+			int res = readBubble(cache, x, y);
+			if(res) {
+				strncpy(&answers[i][answerIdx], bubbles[j], 20-answerIdx);
+				answerIdx += 2;
+				if(DEBUG) {
+					printf("Question %d Bubble %c Filled\n", i+1, 'A' + j);
+				}
+			}
+			if(DEBUG) {
+				drawOnAnswers(img, cache, x, y);
+			}
+		}
 	}
+	return answers;
 }
 
 void drawOnAnswers(Image *img, CacheView *cache, int x, int y){
