@@ -12,7 +12,7 @@ int gradeQuestion(char* ans, char* keyAns, int testStats[][4]);
 
 int main(int argc, char **argv) {
 	if(argc != 4){
-		fprintf(stderr, "Bad input. Usage:\n./txtGrader path_to_tests path_to_keys\n");
+		fprintf(stderr, "Bad input. Usage:\n./txtGrader path_to_tests path_to_keys numQuestions\n");
 		exit(EXIT_FAILURE);
 	}
 
