@@ -16,6 +16,7 @@ char **getAnswers(Image *img, CacheView *cache, int maxQ, int baseX, int baseY);
 char **getMetaInfo(Image *img, CacheView *cache);
 char *getVerticalItem(Image *img, CacheView *cache, int entries, int baseX, int baseY, int form);
 void drawOnAnswers(Image *img, CacheView *cache, int x, int y);
+void manualCrop(Image *img);
 
 ExceptionInfo *exception;
 ImageInfo *imageInfo;
@@ -39,13 +40,16 @@ int main(int argc, char **argv) {
 	MagickCoreGenesis(cwd, (MagickBooleanType) 1);
 	readImg(imgPath);
 	rotateAndCrop();
-	FILE *out = fopen("../TestOut/out.txt", "w+");
-	processImg(img, 200, out);
+	//FILE *out = fopen("../TestOut/out.txt", "w+");
+	//processImg(img, 200, out);
 	MagickCoreTerminus();
 }
 
 void getRGB(Quantum *pixel, float rgb[3]) {
 	for(int i=0; i<3; i++) {
+		if(QuantumRange != 65535) {
+			printf("ERROR\n");
+		}
 		rgb[i] = roundf((pixel[i]/QuantumRange) * 255);
 	}
 }
@@ -101,10 +105,102 @@ void writeImg(Image *out, const char *name) {
 
 void rotateAndCrop() {
 	DefineImageProperty(img, "deskew:auto-crop", exception);
-	img = DeskewImage(img, 1, exception);
-	img = ScaleImage(img, 1200, 2200, exception);
+	//img = DeskewImage(img, 1, exception);
+	//img = ScaleImage(img, 1200, 2200, exception);
+	manualCrop(img);
 	if(DEBUG) {
 		writeImg(img, "../TestOut/fixed.jpg");
+	}
+}
+
+void manualCrop(Image *img) {
+	int maxY = img->rows;
+	int maxX = img->columns;
+	CacheView *cache = AcquireAuthenticCacheView(img, exception);
+	//if true need manual cropping
+	//fabs((double)maxY/(double)maxX - 11.0/6.0) >= 0.001
+	if(1) {
+		//identify black sliver in top right
+		int x = maxX-1;
+		int y = 1;
+		//int limit = round(3*maxX / 4);
+		int state = 0;
+		float rgb[3];
+		int pencilthreshold = 150;		//TODO make this a global constant
+		int upperLeft[2] = {-1, -1};
+		int bottomRight[2] = {-1, -1};
+		int boxCount = 0;
+		int inBox = 0;
+		int offset = -1;
+		int pagewidth = -1;
+		//276 323
+		//Quantum *p = GetCacheViewAuthenticPixels(cache, x, y, 1, 1, exception);
+		//getRGB(p, rgb);
+		//printf("%d,%d: %f|%f|%f\n", x, y, rgb[0], rgb[1], rgb[2]);
+		//return;
+		while(x >= 0 && x < maxX && y >= 0 && y < maxY && state != 5) {	//x > limit
+			//printf("State: %d x: %d y: %d\n", state, x, y);
+			Quantum *p = GetCacheViewAuthenticPixels(cache, x, y, 1, 1, exception);
+			CatchException(exception);
+			getRGB(p, rgb);
+			if(state == 0) { //finds x coord of top-right sliver
+				if(rgb[0] < pencilthreshold || rgb[1] < pencilthreshold || rgb[2] < pencilthreshold) {
+					state = 1;
+				} else {
+					x--;
+				}
+			} else if(state == 1) { //finds bottom of top-right sliver
+				if(rgb[0] > pencilthreshold && rgb[1] > pencilthreshold && rgb[2] > pencilthreshold) {
+					state = 2;
+					//printf("Sliver: %d %d\n", x, y);
+					upperLeft[1] = y;
+					offset = maxX - x;
+					pagewidth = maxX - 2*offset;
+					x = (int) round((double)pagewidth * 0.95) + offset;
+				}
+				y++;
+			} else if(state == 2) { //finds bottom edge of bottom-right rectangle
+				if(rgb[0] < pencilthreshold && rgb[1] < pencilthreshold && rgb[2] < pencilthreshold) {
+					if(!inBox) {
+						boxCount++;
+						//printf("Boxes: %d\n", boxCount);
+						inBox = 1;
+					}
+				} else {
+					if(inBox) {
+						bottomRight[1] = y-1;
+						if(boxCount == 62) {
+							state = 3;
+							y -= 2;
+						}
+					}
+					inBox = 0;
+				}
+				y++;
+			} else if(state == 3) {	//finds right edge of bottom-right rectangle
+				if(rgb[0] > pencilthreshold && rgb[1] > pencilthreshold && rgb[2] > pencilthreshold) {
+					state = 4;
+					bottomRight[0] = x;
+					//offset = maxX - x;
+					//pagewidth = maxX - 2*offset;
+					x = (int) round((double)pagewidth * 0.04) + offset;
+				} else {
+					x++;
+				}
+			} else if(state == 4) {
+				if(rgb[0] < pencilthreshold && rgb[1] < pencilthreshold && rgb[2] < pencilthreshold) {
+					state = 5;
+					upperLeft[0] = x;
+				} else {
+					x++;
+				}
+			}
+		}
+		x = upperLeft[0];
+		y = upperLeft[1];
+		int w = bottomRight[0] - upperLeft[0];
+		int h = bottomRight[1] - upperLeft[1];
+		printf("x: %d, y: %d, w: %d, h: %d\n", x, y, w, h);
 	}
 }
 
