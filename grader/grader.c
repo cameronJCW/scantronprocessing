@@ -16,7 +16,7 @@ char **getAnswers(Image *img, CacheView *cache, int maxQ, int baseX, int baseY);
 char **getMetaInfo(Image *img, CacheView *cache);
 char *getVerticalItem(Image *img, CacheView *cache, int entries, int baseX, int baseY, int form);
 void drawOnAnswers(Image *img, CacheView *cache, int x, int y);
-void manualCrop(Image *img);
+Image *manualCrop(Image *img);
 
 ExceptionInfo *exception;
 ImageInfo *imageInfo;
@@ -104,16 +104,19 @@ void writeImg(Image *out, const char *name) {
 }
 
 void rotateAndCrop() {
-	DefineImageProperty(img, "deskew:auto-crop", exception);
-	//img = DeskewImage(img, 1, exception);
-	//img = ScaleImage(img, 1200, 2200, exception);
-	manualCrop(img);
+	//DefineImageProperty(img, "deskew:auto-crop", exception);
+	img = DeskewImage(img, 1, exception);
 	if(DEBUG) {
-		writeImg(img, "../TestOut/fixed.jpg");
+		writeImg(img, "../TestOut/unskew.jpg");
+	}
+	img = manualCrop(img);
+	//img = ScaleImage(img, 1200, 2200, exception);
+	if(DEBUG) {
+		writeImg(img, "../TestOut/cropped.jpg");
 	}
 }
 
-void manualCrop(Image *img) {
+Image *manualCrop(Image *img) {
 	int maxY = img->rows;
 	int maxX = img->columns;
 	CacheView *cache = AcquireAuthenticCacheView(img, exception);
@@ -122,7 +125,7 @@ void manualCrop(Image *img) {
 	if(1) {
 		//identify black sliver in top right
 		int x = maxX-1;
-		int y = 1;
+		int y = 50;
 		//int limit = round(3*maxX / 4);
 		int state = 0;
 		float rgb[3];
@@ -137,7 +140,7 @@ void manualCrop(Image *img) {
 		//Quantum *p = GetCacheViewAuthenticPixels(cache, x, y, 1, 1, exception);
 		//getRGB(p, rgb);
 		//printf("%d,%d: %f|%f|%f\n", x, y, rgb[0], rgb[1], rgb[2]);
-		//return;
+		//return img;
 		while(x >= 0 && x < maxX && y >= 0 && y < maxY && state != 5) {	//x > limit
 			//printf("State: %d x: %d y: %d\n", state, x, y);
 			Quantum *p = GetCacheViewAuthenticPixels(cache, x, y, 1, 1, exception);
@@ -200,8 +203,18 @@ void manualCrop(Image *img) {
 		y = upperLeft[1];
 		int w = bottomRight[0] - upperLeft[0];
 		int h = bottomRight[1] - upperLeft[1];
-		printf("x: %d, y: %d, w: %d, h: %d\n", x, y, w, h);
+		RectangleInfo tmp;
+		tmp.x = x;
+		tmp.y = y;
+		tmp.width = w;
+		tmp.height = h;
+		img = CropImage(img, &tmp, exception);
+		CatchException(exception);
+		if(DEBUG) {
+			printf("x: %d, y: %d, w: %d, h: %d\n", tmp.x, y, w, h);
+		}
 	}
+	return img;
 }
 
 void processImg(Image *img, int maxQ, FILE *file) {
