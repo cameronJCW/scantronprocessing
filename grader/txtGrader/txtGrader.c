@@ -73,10 +73,9 @@ int main(int argc, char **argv) {
 		int currentQ = 1;
 		while(fgets(keyAns, MAXLINE, keyFile) != NULL){
 			fgets(ans, MAXLINE, testFile);
-			numCorrect += gradeQuestion(ans, keyAns, testStats);
+			numCorrect = numCorrect + gradeQuestion(ans, keyAns, testStats);
 			currentQ++;
 		}
-
 		fprintf(gradeFile, "%s,%d\n", wNum, numCorrect);
 
 		fclose(testFile);
@@ -84,9 +83,21 @@ int main(int argc, char **argv) {
 	}
 	fclose(gradeFile);
 
-	fprintf(statsFile, "Question Number, A,B,C,D\n");
+	strcpy(keyLoc, argv[2]);
+	strcat(keyLoc, keyNames[0]);
+	keyFile = fopen(keyLoc, "r");
+	char statsKey[numQuestions];
+	int idx = 0;
+	while(fgets(keyAns, MAXLINE, keyFile) != NULL){
+		statsKey[idx] = keyAns[0];
+		idx++;
+	}
+
+	fprintf(statsFile, "Question Number - Answer,A,B,C,D,percent correct\n");
 	for(int i=0; i<numQuestions; i++){
-		fprintf(statsFile, "Question %d, %d,%d,%d,%d\n", i+1, testStats[i][0], testStats[i][1], testStats[i][2], testStats[i][3]);
+		double numStudent = testIterator-1;
+		double numCorrect = testStats[i][statsKey[i] - 65];
+		fprintf(statsFile, "%d - %c,%d,%d,%d,%d,%.2f\n", i+1, statsKey[i], testStats[i][0], testStats[i][1], testStats[i][2], testStats[i][3], numCorrect/numStudent);
 	}
 	fclose(statsFile);
 }
@@ -100,16 +111,18 @@ int gradeQuestion(char* ans, char* keyAns, int testStats[][4]){
 	char* mapToQ = strtok(NULL, ":");
 	char* mapToAns = strtok(NULL, "\n");
 
-	if(strlen(ans) == 1){
-		if(strcmp(ans, realAns) == 0){
+
+	if(strlen(ans) == 2){
+		if(ans[0] == realAns[0]){
 			wasCorrect = 1;
 		}
-	}
-	int mapToQuestion = atoi(mapToQ);
-	int qIndx = ans[0] - 65;
-	int standardizedAns = mapToAns[qIndx] - '0';
+		int mapToQuestion = atoi(mapToQ);
+		int qIndx = ans[0] - 65;
+		int standardizedAns = mapToAns[qIndx] - '0';
 
-	testStats[mapToQuestion-1][standardizedAns-1] += 1;
+		testStats[mapToQuestion-1][standardizedAns-1] += 1;
+	}
+
 
 	return wasCorrect;
 }
