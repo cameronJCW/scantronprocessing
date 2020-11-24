@@ -72,9 +72,17 @@ int main(int argc, char **argv) {
 		int numCorrect = 0;
 		int currentQ = 1;
 		while(fgets(keyAns, MAXLINE, keyFile) != NULL){
+			if(currentQ > numQuestions){
+				fprintf(stderr, "Number of questions exceeded input number of questions.\n");
+				exit(1);
+			}
 			fgets(ans, MAXLINE, testFile);
 			numCorrect = numCorrect + gradeQuestion(ans, keyAns, testStats);
 			currentQ++;
+		}
+		if(currentQ-1 != numQuestions){
+			fprintf(stderr, "Number of questions was less than input number\n");
+			exit(1);
 		}
 		fprintf(gradeFile, "%s,%d\n", wNum, numCorrect);
 
