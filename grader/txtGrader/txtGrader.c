@@ -11,31 +11,58 @@
 int gradeQuestion(char* ans, char* keyAns, int testStats[][4]);
 
 int main(int argc, char **argv) {
-	if(argc != 4){
-		fprintf(stderr, "Bad input. Usage:\n./txtGrader path_to_tests path_to_keys numQuestions\n");
-		exit(EXIT_FAILURE);
-	}
-
-	int numQuestions = atoi(argv[3]);
-	int testStats[numQuestions][4];
-	memset(testStats, 0, numQuestions*4*sizeof(int));
-
-	char* keyNames[4] = {"testKeyA.txt", "testKeyB.txt","testKeyC.txt","testKeyD.txt"};
-	char* versions[4] = {"A\n", "B\n", "C\n", "D\n"};
-
 	char testLoc[1024];
 	char keyLoc[1024];
-
-	FILE *testFile, *keyFile, *gradeFile, *statsFile;
-
 	char ans[MAXLINE];
 	char keyAns[MAXLINE];
 	char wNum[10];
+
+	FILE *testFile, *keyFile, *gradeFile, *statsFile;
+
 	int testIterator = 1;
+
+	if(argc != 3){
+		fprintf(stderr, "Bad input. Usage:\n./txtGrader path_to_tests path_to_keys/keyFile.txt\n");
+		exit(EXIT_FAILURE);
+	}
+
+//Take key file and populate array with each form
+	if((keyFile = fopen(argv[2], "r")) == NULL){
+		fprintf(stderr, "Key file not found\n");
+		exit(EXIT_SUCCESS);
+	}
+	fgets(keyAns, MAXLINE, keyFile);
+	int numVersion = atoi(keyAns);
+	fgets(keyAns, MAXLINE, keyFile);
+	int numQuestions = atoi(keyAns);
+
+	char* keys[numVersion][numQuestions];
+	for(int i=0; i<numVersion; i++){
+		for(int j=0; j<numQuestions; j++){
+			keys[i][j] = malloc(sizeof(char) * 10);
+		}
+	}
+
+	int readVersion = -1;
+	int readQuestion = 0;
+	while(fgets(keyAns, MAXLINE, keyFile) != NULL){
+		if(keyAns[0] == 'F'){
+			readVersion++;
+			readQuestion = 0;
+		}else{
+			strcpy(keys[readVersion][readQuestion],keyAns);
+			readQuestion++;
+		}
+	}
+
+//initialize array for aggregating statistical information
+	int testStats[numQuestions][4];
+	memset(testStats, 0, numQuestions*4*sizeof(int));
 
 	gradeFile = fopen("grades.csv", "w+");
 	statsFile = fopen("stats.csv", "w+");
 
+//Start grabbing and grading exams
 	while(1){
 		char currentTest[1024];
 		sprintf(currentTest, "test-%d.txt", testIterator);
@@ -52,37 +79,27 @@ int main(int argc, char **argv) {
 		fgets(ans, MAXLINE, testFile);
 		strcpy(wNum, strtok(ans, "\n"));
 
+		//Use acii value of A,B,C, or D to index into keys
 		fgets(ans, MAXLINE, testFile);
-		char *version = ans;
-		for(int i=0; i<4; i++){
-			if(strcmp(version, versions[i]) == 0){
-				strcpy(keyLoc, argv[2]);
-				strcat(keyLoc, keyNames[i]);
-				keyFile = fopen(keyLoc, "r");
-			}
-		}
-		if(keyFile==NULL){
-			fprintf(stderr, "key file not found: %c\n", version[0]);
-			exit(1);
-		}
+		int version = ans[0] - 65;
+
 
 		fgets(ans, MAXLINE, testFile);
 		char *essayQ = ans;
 
 		int numCorrect = 0;
 		int currentQ = 1;
-		while(fgets(keyAns, MAXLINE, keyFile) != NULL){
+		while(fgets(ans, MAXLINE, testFile) != NULL){
 			if(currentQ > numQuestions){
-				fprintf(stderr, "Number of questions exceeded input number of questions.\n");
-				exit(1);
+				fprintf(stderr, "Number of questions exceeded given number of questions.\n");
+				exit(EXIT_SUCCESS);
 			}
-			fgets(ans, MAXLINE, testFile);
-			numCorrect = numCorrect + gradeQuestion(ans, keyAns, testStats);
+			numCorrect = numCorrect + gradeQuestion(ans, keys[version][currentQ-1], testStats);
 			currentQ++;
 		}
 		if(currentQ-1 != numQuestions){
-			fprintf(stderr, "Number of questions was less than input number\n");
-			exit(1);
+			fprintf(stderr, "Number of questions was less than given number\n");
+			exit(EXIT_SUCCESS);
 		}
 		fprintf(gradeFile, "%s,%d\n", wNum, numCorrect);
 
@@ -91,21 +108,11 @@ int main(int argc, char **argv) {
 	}
 	fclose(gradeFile);
 
-	strcpy(keyLoc, argv[2]);
-	strcat(keyLoc, keyNames[0]);
-	keyFile = fopen(keyLoc, "r");
-	char statsKey[numQuestions];
-	int idx = 0;
-	while(fgets(keyAns, MAXLINE, keyFile) != NULL){
-		statsKey[idx] = keyAns[0];
-		idx++;
-	}
-
 	fprintf(statsFile, "Question Number - Answer,A,B,C,D,percent correct\n");
 	for(int i=0; i<numQuestions; i++){
 		double numStudent = testIterator-1;
-		double numCorrect = testStats[i][statsKey[i] - 65];
-		fprintf(statsFile, "%d - %c,%d,%d,%d,%d,%.2f\n", i+1, statsKey[i], testStats[i][0], testStats[i][1], testStats[i][2], testStats[i][3], numCorrect/numStudent);
+		double numCorrect = testStats[i][keys[0][i][0] - 65];
+		fprintf(statsFile, "%d - %c,%d,%d,%d,%d,%.2f\n", i+1, keys[0][i][0], testStats[i][0], testStats[i][1], testStats[i][2], testStats[i][3], numCorrect/numStudent);
 	}
 	fclose(statsFile);
 }
