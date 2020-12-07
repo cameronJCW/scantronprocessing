@@ -112,7 +112,7 @@ int main(int argc, char **argv) {
 	for(int i=0; i<numQuestions; i++){
 		double numStudent = testIterator-1;
 		double numCorrect = testStats[i][keys[0][i][0] - 65];
-		fprintf(statsFile, "%d - %c,%d,%d,%d,%d,%.2f\n", i+1, keys[0][i][0], testStats[i][0], testStats[i][1], testStats[i][2], testStats[i][3], numCorrect/numStudent);
+		fprintf(statsFile, "%d - %c,%d,%d,%d,%d,%.2f\n", i+1, keys[0][i][0], testStats[i][0], testStats[i][1], testStats[i][2], testStats[i][3], (numCorrect/numStudent)*100);
 	}
 	fclose(statsFile);
 }
