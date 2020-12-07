@@ -20,6 +20,9 @@ int main(int argc, char **argv) {
 	FILE *testFile, *keyFile, *gradeFile, *statsFile;
 
 	int testIterator = 1;
+	int max = 0;
+	int min = 0;
+	double average = 0;
 
 	if(argc != 3){
 		fprintf(stderr, "Bad input. Usage:\n./txtGrader path_to_tests path_to_keys/keyFile.txt\n");
@@ -35,6 +38,7 @@ int main(int argc, char **argv) {
 	int numVersion = atoi(keyAns);
 	fgets(keyAns, MAXLINE, keyFile);
 	int numQuestions = atoi(keyAns);
+	min = numQuestions;
 
 	char* keys[numVersion][numQuestions];
 	for(int i=0; i<numVersion; i++){
@@ -97,6 +101,14 @@ int main(int argc, char **argv) {
 			numCorrect = numCorrect + gradeQuestion(ans, keys[version][currentQ-1], testStats);
 			currentQ++;
 		}
+		if(numCorrect > max){
+			max = numCorrect;
+		}
+		if(numCorrect < min){
+			min = numCorrect;
+		}
+		average += numCorrect;
+
 		if(currentQ-1 != numQuestions){
 			fprintf(stderr, "Number of questions was less than given number\n");
 			exit(EXIT_SUCCESS);
@@ -108,12 +120,17 @@ int main(int argc, char **argv) {
 	}
 	fclose(gradeFile);
 
+	double numStudent = testIterator-1;
+
 	fprintf(statsFile, "Question Number - Answer,A,B,C,D,percent correct\n");
 	for(int i=0; i<numQuestions; i++){
-		double numStudent = testIterator-1;
 		double numCorrect = testStats[i][keys[0][i][0] - 65];
 		fprintf(statsFile, "%d - %c,%d,%d,%d,%d,%.2f\n", i+1, keys[0][i][0], testStats[i][0], testStats[i][1], testStats[i][2], testStats[i][3], (numCorrect/numStudent)*100);
 	}
+	fprintf(statsFile, "\n" );
+	fprintf(statsFile, "min - %d\n", min);
+	fprintf(statsFile, "max - %d\n", max);
+	fprintf(statsFile, "average - %.2f\n", average/numStudent);
 	fclose(statsFile);
 }
 
