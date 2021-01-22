@@ -11,11 +11,11 @@
 int gradeQuestion(char* ans, char* keyAns, int testStats[][4]);
 
 int main(int argc, char **argv) {
-	char testLoc[1024];
-	char keyLoc[1024];
+	char testLoc[MAXLINE];
+	char keyLoc[MAXLINE];
 	char ans[MAXLINE];
 	char keyAns[MAXLINE];
-	char wNum[10];
+	char wNum[15];
 
 	FILE *testFile, *keyFile, *gradeFile, *statsFile;
 
@@ -58,6 +58,7 @@ int main(int argc, char **argv) {
 			readQuestion++;
 		}
 	}
+	fclose(keyFile);
 
 //initialize array for aggregating statistical information
 	int testStats[numQuestions][4];
@@ -116,7 +117,6 @@ int main(int argc, char **argv) {
 		fprintf(gradeFile, "%s,%d\n", wNum, numCorrect);
 
 		fclose(testFile);
-		fclose(keyFile);
 	}
 	fclose(gradeFile);
 
@@ -132,6 +132,12 @@ int main(int argc, char **argv) {
 	fprintf(statsFile, "max - %d\n", max);
 	fprintf(statsFile, "average - %.2f\n", average/numStudent);
 	fclose(statsFile);
+
+	for(int i=0; i<numVersion; i++){
+		for(int j=0; j<numQuestions; j++){
+			free(keys[i][j]);
+		}
+	}
 }
 
 int gradeQuestion(char* ans, char* keyAns, int testStats[][4]){
@@ -143,7 +149,6 @@ int gradeQuestion(char* ans, char* keyAns, int testStats[][4]){
 	char* mapToQ = strtok(NULL, ":");
 	char* mapToAns = strtok(NULL, "\n");
 
-
 	if(strlen(ans) == 2){
 		if(ans[0] == realAns[0]){
 			wasCorrect = 1;
@@ -154,7 +159,6 @@ int gradeQuestion(char* ans, char* keyAns, int testStats[][4]){
 
 		testStats[mapToQuestion-1][standardizedAns-1] += 1;
 	}
-
 
 	return wasCorrect;
 }
