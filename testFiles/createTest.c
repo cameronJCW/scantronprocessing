@@ -30,7 +30,8 @@ void shuffle(int *array, size_t n);
 
 /* Globals */
 
-/* Usage: course exam_length num_forms */
+/* Usage: course chapter exam_length num_forms 
+   ./createTest CSCI247 Chapter1 10 3 */
 int main(int argc, char **argv) {
   if (argc != 5) {
     fprintf(stderr, "usage: ./createTest course chapter num_questions num_forms\n");
@@ -293,18 +294,6 @@ void parseQuestion(FILE *fp, FILE *key, char **fileList, int questionC, int i) {
   fputs(keyBuf, key);
   fclose(cQ);
 }
-
-/*
-  1 form: no split
-  2 forms: 1
-  3 forms: 2
-  4 forms: 3
-  for each form, push one more segment to end from previous
-  queue:
-  - queue item: questions equal to 1/2, 1/3, or 1/4 of total
-  - for b: pop and push once, c: pop and push twice, etc.
-  - 
- */
 
 /* Arrange the N elements of ARRAY in random order.
    Taken from Ben Pfaff: CITE THIS MAN!
