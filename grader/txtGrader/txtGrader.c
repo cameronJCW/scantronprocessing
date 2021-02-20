@@ -16,6 +16,7 @@ int main(int argc, char **argv) {
 	char ans[MAXLINE];
 	char keyAns[MAXLINE];
 	char wNum[15];
+	double studentScores[MAXLINE*2];
 
 	FILE *testFile, *keyFile, *gradeFile, *statsFile;
 
@@ -114,23 +115,39 @@ int main(int argc, char **argv) {
 			fprintf(stderr, "Number of questions was less than given number\n");
 			exit(EXIT_SUCCESS);
 		}
-		fprintf(gradeFile, "%s,%d\n", wNum, numCorrect);
+		studentScores[testIterator-2] = numCorrect;
 
 		fclose(testFile);
 	}
 	fclose(gradeFile);
 
 	double numStudent = testIterator-1;
+	double stdSum;
+	double variance;
+	double stdDev;
 
 	fprintf(statsFile, "Question Number - Answer,A,B,C,D,percent correct\n");
 	for(int i=0; i<numQuestions; i++){
 		double numCorrect = testStats[i][keys[0][i][0] - 65];
-		fprintf(statsFile, "%d - %c,%d,%d,%d,%d,%.2f\n", i+1, keys[0][i][0], testStats[i][0], testStats[i][1], testStats[i][2], testStats[i][3], (numCorrect/numStudent)*100);
+		fprintf(statsFile, "%d - %c,%d,%d,%d,%d,%.2f\n", i+1, keys[0][i][0],\
+				testStats[i][0], testStats[i][1], testStats[i][2], testStats[i][3],\
+				(numCorrect/numStudent)*100);
 	}
+
+	average = average/numStudent;
 	fprintf(statsFile, "\n" );
 	fprintf(statsFile, "min - %d\n", min);
 	fprintf(statsFile, "max - %d\n", max);
-	fprintf(statsFile, "average - %.2f\n", average/numStudent);
+	fprintf(statsFile, "average - %.2f\n", average);
+
+	for(int i=0; i < numStudent; i++){
+		stdSum = stdSum + pow( (studentScores[i] - average), 2.0);
+	}
+	variance = stdSum / numStudent;
+	stdDev = sqrt(variance);
+	fprintf(statsFile, "variance - %.2f\n", variance);
+	fprintf(statsFile, "standard deviation - %.2f\n", stdDev);
+
 	fclose(statsFile);
 
 	for(int i=0; i<numVersion; i++){
