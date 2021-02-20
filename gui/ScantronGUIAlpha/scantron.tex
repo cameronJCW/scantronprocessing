@@ -1,0 +1,315 @@
+\documentclass{article}
+\oddsidemargin 0in
+\textwidth 6.5in
+\headsep 0in
+\textheight 8.5in
+\pagenumbering{arabic}
+%set to 0 for real test (default), set to 1 to print answers
+\newcount\showans
+\showans=1
+\newcommand{\ans}[1]{ \ifnum\showans=1 {\bf ANSWER #1.} \fi }
+\begin{document}
+{ \Large
+\begin{center}
+CS 341, F2007 - Test 1 (100 pts), Form A
+\end{center}
+}
+
+\vspace{.1in}
+
+\noindent
+{\Large\bf INSTRUCTIONS:} Answer the multiple choice questions on the
+answer sheet.  {\em Choose the best answer.  Mark only one answer per
+question.}  For the essay problems, please answer the questions on the
+paper provided.  {\em Write on only one side of each sheet of paper.
+If you do write on both sides of any sheet you turn in, you {\bf will}
+lose points.}
+
+\vspace{.1in}
+
+\begin{enumerate}
+
+\item (3 points) C++ was originally designed at
+  \begin{enumerate}
+  \item IBM.
+  \item HP.
+  \item Microsoft.
+  \item Apple.
+  \item None of the above.  \ans{e}
+  \end{enumerate}
+
+\item (3 points) We are studying C along with C++ 
+  \begin{enumerate}
+  \item to make things more confusing.
+  \item because you can't program C++ without knowing C.
+  \item because knowing C makes you understand C++ better. \ans{c}
+  \item because C and C++ require different compilers.
+  \item None of the above.
+  \end{enumerate}
+
+\item (3 points) The first function run in a C++ program is the function
+  \begin{enumerate}
+  \item main().  \ans{a}
+  \item cpp\_main().
+  \item win\_main().
+  \item start().
+  \item None of the above.
+  \end{enumerate}
+
+\item (3 points) Identifiers in C++ 
+  \begin{enumerate}
+  \item must always start with a letter.
+  \item are case insensitive.
+  \item have a maximum length.
+  \item may start with the underscore character.  \ans{d}
+  \item None of the above.
+  \end{enumerate}
+
+\item (3 points) One of the few restrictions on declaring variables is
+  \begin{enumerate}
+  \item it must be declared just after a \{.
+  \item it must be declared before used.  \ans{b}
+  \item it must have a type modifier in the declaration.
+  \item that even global variables must be declared inside functions.
+  \item None of the above.
+  \end{enumerate}
+
+\item (3 points) Assume that z is 3.  The result of running the
+expression $m = z * (k = 4 + (y = 3 * z))$ is
+  \begin{enumerate}
+  \item m is 9, k is 4, and y is 3.
+  \item m is 39, k is 4, and y is 3.
+  \item m is 27, k is 13, and y is 9.
+  \item m is 39, k is 13, and y is 9.  \ans{d}
+  \item None of the above.
+  \end{enumerate}
+
+\item (3 points) Consider the code:
+\begin{verbatim}
+    n = 2;
+    n += n+(++n);
+\end{verbatim}
+What is the value of n after the code?
+  \begin{enumerate}
+  \item Not defined, don't do it.  \ans{a}
+  \item This code produces a compiler error.
+  \item 7
+  \item 9
+  \item None of the above.
+  \end{enumerate}
+
+\item (3 points) Consider the logical expression `` e1 \&\& e2 ''.
+  \begin{enumerate}
+  \item e1 and e2 are always evaluated.
+  \item e2 is evaluated only if e1 is false.
+  \item e2 is evaluated only if e1 is true.  \ans{c}
+  \item None of the above.
+  \end{enumerate}
+
+\item (3 points) In C++, enum types 
+  \begin{enumerate}
+  \item allow naming of integer values.  \ans{a}
+  \item can not be used with other enum types.
+  \item produce unique numbers for each enum identifier.
+  \item can not be used with floats or doubles.
+  \item None of the above.
+  \end{enumerate}
+
+\item (3 points) In C and C++, a for loop
+  \begin{enumerate}
+  \item requires a new variable declared in the loop.
+  \item calculates the number of times to run the loop before starting it.
+  \item must have all expressions present in the ``for (e1; e2; e3)'' part.
+  \item is just special syntax for a while loop.  \ans{d}
+  \item None of the above.
+  \end{enumerate}
+
+\newpage
+\item (3 points) The prototype ``void getInput (double \& val);''
+specifies that
+  \begin{enumerate}
+  \item getInput returns a double.
+  \item val is a call by value parameter.
+  \item val is a pointer to a double.
+  \item val is an array.
+  \item None of the above.  \ans{e}
+  \end{enumerate}
+
+\item (3 points) Functions declared to be inline in C++ are
+  \begin{enumerate}
+  \item useless.
+  \item may not be inline.   \ans{b}
+  \item increase the time requirements for the program.
+  \item will do textual substution like preprocessor macros.
+  \item None of the above.
+  \end{enumerate}
+
+\item (3 points) Array parameters are like
+  \begin{enumerate}
+  \item call by value parameters and the entire array gets copied.
+  \item call by value pointer parameters and just copy a pointer.  \ans{b}
+  \item call by reference parameters to simple variables.
+  \item no other kind of parameter.
+  \item None of the above.
+  \end{enumerate}
+
+\item (3 points) If A and B are identical arrays, then the statement
+``A = B;'' copies the array B into the array A.
+  \begin{enumerate}
+  \item True
+  \item False  \ans{b}
+  \end{enumerate}
+
+\item (3 points) In C and C++, pointers may point at
+  \begin{enumerate} 
+  \item almost anything including functions.  \ans{a}
+  \item just dynamic memory.
+  \item dynamic memory and local variables.
+  \item dynamic memory and global variables.
+  \item None of the above.
+  \end{enumerate}
+
+\item (3 points) For dynamic memory manipulation, C++ uses
+  \begin{enumerate}
+  \item the operators malloc and free.
+  \item the library routines new and delete.
+  \item the library routines new and free.
+  \item the operators new and free.
+  \item None of the above.  \ans{e}
+  \end{enumerate}
+
+\item (3 points) In C++, there is no way to have the compiler
+guarantee that an array passed into a function is not modified.
+  \begin{enumerate}
+  \item True
+  \item False  \ans{b}
+  \end{enumerate}
+
+\newpage
+\item (3 points) Given the declaration ``int x;'', the type
+of ``\&x'' is
+  \begin{enumerate}
+  \item void *.
+  \item int.
+  \item void.
+  \item int *.  \ans{d}
+  \item None of the above.
+  \end{enumerate}
+
+\item (3 points) Given the declaration ``int *dp'', the code
+``*(dp+ix)=0;'' is the same as
+  \begin{enumerate}
+  \item *dp = 0;
+  \item *dp+ix = 0;
+  \item dp[ix] = 0;  \ans{c}
+  \item *dp*ix = 0;
+  \item None of the above.
+  \end{enumerate}
+
+\item (3 points) The code ``int * ip = new int[100];''
+  \begin{enumerate}
+  \item will produce a compile error.
+  \item creates a new integer in dynamic memory and initializes it to 100.
+  \item creates a new array with 100 integers. \ans{c}
+  \item None of the above.
+  \end{enumerate}
+
+\item (3 points) What will be printed from the following code?
+\begin{verbatim}
+     int ary[10] = { 3, 6, 9, 12, 15 };
+     int *pa = ary;
+     cout << *pa+2 << *(pa+2) << pa[5] << endl;
+\end{verbatim}
+  \begin{enumerate}
+  \item It will segment fault.
+  \item 9915
+  \item \ 8 5 0 
+  \item 590  \ans{d}
+  \item None of the above.
+  \end{enumerate}
+
+\item (3 points) The value of the expression ``(1, 2, 3, 4)'' is
+  \begin{enumerate} 
+  \item 1. 
+  \item 2.
+  \item 3.
+  \item 4.  \ans{d}
+  \item None of the above.
+  \end{enumerate}
+
+\newpage
+\item (3 points) The value of the expression
+$( a<b ? (a>c ? a : c) : (b>c ? b : c) )$ is
+
+  \begin{enumerate}
+  \item not known from the above information.
+  \item the minimum of a, b and c.
+  \item the median of a, b and c. \ans{c}
+  \item the maximum of a, b and c.
+  \item None of the above. 
+  \end{enumerate}
+
+\item (3 points) The C++ code ``struct XYZ { int a; struct XYZ *b; } X;'' 
+  \begin{enumerate}
+  \item has a syntax error.
+  \item declares X where X.b is of type XYZ*.  \ans{b}
+  \item declares X where X.b is of type void *.
+  \item None of the above.
+  \end{enumerate}
+
+\item (3 points) Given the code:
+\begin{verbatim}
+   struct mystruct {
+       int size;
+       int mydata[1000];
+   };
+
+   mystruct A, B, C;
+\end{verbatim}
+  \begin{enumerate}
+  \item $A=B+C;$ is legal.
+  \item $A=B=C;$ is legal.  \ans{b}
+  \item $A==B==C;$ is legal.
+  \item memcpy(A,B,sizeof(A)) is the only way to copy the structs.
+  \item None of the above.
+  \end{enumerate}
+
+
+\item (6 points) Describe a very common bug in C and C++ using
+the if statement.
+
+\item (8 points) What are the 4 match rules for overloaded functions.
+List them in order.
+
+\item (6 points) A common loop looks like:
+\begin{verbatim}
+    int ix = 0;
+    while (++ix < 10) { ... }
+\end{verbatim}
+What is the value of ix after the loop?  What would be the value if the
+loop used ix++?
+
+\item (5 points)  Why should you return a value from main?
+
+\end{enumerate}
+
+% comment out next line for sending to testing center
+\end{document}
+
+
+\newpage
+\center{Answer Page For \underline{\hspace{3in}}
+
+\newpage
+\center{Please Leave Blank}
+
+\newpage
+\center{Answer Page For \underline{\hspace{3in}}
+
+\newpage
+\center{Please Leave Blank}
+
+\newpage
+\center{Answer Page For \underline{\hspace{3in}}
+
+\end{document}

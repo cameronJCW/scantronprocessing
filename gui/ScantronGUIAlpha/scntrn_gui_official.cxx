@@ -3,6 +3,10 @@
 #include "scntrn_gui_official.h"
 #include <FL/x.H>
 
+extern "C" {
+#include "createTest.h"
+}
+
 Fl_Menu_Item scntrngui::menu_[] = {
  {"&Courses", 0,  0, 0, 64, (uchar)FL_NORMAL_LABEL, 0, 14, 0},
  {"&New", 0x4006e,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 14, 0},
