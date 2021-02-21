@@ -84,7 +84,8 @@ void create_exam(Fl_Widget* w, void* v) {
 
 int main(int argc, char **argv) {
   scntrngui window;
-  Fl_Double_Window* mainwindow = window.make_window();
-  mainwindow->show();
+  //Fl_Double_Window* mainwindow = window.make_window();
+  //mainwindow->show();
+  FL_Double_Window *window; // Main window
   Fl::run();
 }
