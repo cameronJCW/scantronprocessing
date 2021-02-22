@@ -14,6 +14,11 @@ char **chapter;
 int examlength;
 int forms;
 
+Fl_Input        *filter;
+Fl_File_Browser *files;
+Fl_File_Chooser *fc;
+Fl_Choice       *ch_extra;
+
 Fl_Menu_Item scntrngui::menu_[] = {
  {"&Courses", 0,  0, 0, 64, (uchar)FL_NORMAL_LABEL, 0, 14, 0},
  {"&New", 0x4006e,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 14, 0},
@@ -74,6 +79,66 @@ Fl_Double_Window* scntrngui::make_window() {
   return w;
 }
 
+int main(int argc, char **argv) {
+  //scntrngui window;
+  //Fl_Double_Window* mainwindow = window.make_window();
+  //mainwindow->show();
+  Fl_Double_Window *window; // Main window
+  Fl_Button        *button; // Buttons
+  Fl_File_Icon     *icon;   // New file icon
+
+  // Make the file chooser...
+  Fl::scheme(NULL);
+
+  fc = new Fl_File_Chooser(".", "*", Fl_File_Chooser::SINGLE, "Select Questions");
+  //fc->callback(fc_callback);
+
+  // Make the main window
+  window = new Fl_Double_Window(640, 480, "Scantron Grading Tool");
+
+  filter = new Fl_Input(50, 10, 315, 25, "Filter:");
+
+  // Make the buttons
+  button = new Fl_Button(365, 10, 25, 25);
+  button->labelcolor(FL_YELLOW);
+  button->callback((Fl_Callback *)show_callback);
+
+  icon   = Fl_File_Icon::find(".", Fl_File_Icon::DIRECTORY);
+  icon->label(button);
+
+  button = new Fl_Light_Button(50, 45, 80, 25, "S1");
+  //  button->callback((Fl_Callback *)s1_callback);
+
+  button = new Fl_Light_Button(140, 45, 90, 25, "S2");
+  //  button->callback((Fl_Callback *)s2_callback);
+
+  button = new Fl_Light_Button(240, 45, 115, 25, "S3");
+  //  button->callback((Fl_Callback *)s3_callback);
+
+  //
+  ch_extra = new Fl_Choice(150, 75, 50, 25, "Versions:");
+  ch_extra->add("1|2|3|4");
+  ch_extra->value(0);
+  //ch_extra->callback((Fl_Callback *)extra_callback);
+
+  
+  //
+  files = new Fl_File_Browser(50, 125, 340, 75, "Selected Questions");
+  files->align(FL_ALIGN_TOP);
+
+  button = new Fl_Button(340, 205, 100, 25, "Create Exam");
+  button->callback((Fl_Callback *)create_exam);
+
+  window->resizable(NULL); //files
+  window->end();
+  window->show(1, argv);
+  
+  Fl::run();
+
+  return (0);
+}
+
+
 void create_exam(Fl_Widget* w, void* v) {
   int ret = system("./createTest CSCI247 Chapter1 9 4");
   if (ret < 0) {
@@ -81,11 +146,64 @@ void create_exam(Fl_Widget* w, void* v) {
   }
 }
 
+void extra_callback(Fl_Choice *w, void*) {
+  int val = w->value();
+  switch (val) {
+  case 0:
+    forms = 1;
+  case 1:
+    forms = 2;
+  case 2:
+    forms = 3;
+  case 3:
+    forms = 4;
+  }
+  printf("forms:%d\n", forms);
+}
 
-int main(int argc, char **argv) {
-  scntrngui window;
-  //Fl_Double_Window* mainwindow = window.make_window();
-  //mainwindow->show();
-  FL_Double_Window *window; // Main window
-  Fl::run();
+void fc_callback(Fl_File_Chooser *fc,     // I - File chooser
+		 void            *data) { // I - Data
+  const char *filename; //
+
+  printf("fc_callback(fc = %p, data = %p\n", fc, data);
+
+  filename = fc->value();
+
+  printf("    filename = \"%s\"\n", filename ? filename : "(null)");
+  
+}
+
+
+void show_callback() {
+  int  i;                     // Looping var
+  int  count;                 // Number of files selected
+  char relative[FL_PATH_MAX]; // Relative filename
+
+  if (filter->value()[0]) {
+    fc->filter(filter->value());
+  }
+
+  fc->show();
+
+  while (fc->visible()) {
+    Fl::wait();
+  }
+
+  count = fc->count();
+  if (count > 0) {
+    files->clear();
+
+    for (i = 1; i <= count; i++) {
+      if (!fc->value(i)) {
+	break;
+      }
+
+      fl_filename_relative(relative, sizeof(relative), fc->value(i));
+
+      files->add(relative,
+		 Fl_File_Icon::find(fc->value(i), Fl_File_Icon::PLAIN));
+    }
+    
+    files->redraw();
+  }
 }
