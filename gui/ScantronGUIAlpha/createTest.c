@@ -1,6 +1,6 @@
 /*   Scantron Test Creation Tool 
  *
- *   Cameron Wallace
+ *   Cameron Wallace, Angie Luty
  *   Oct 27, 2020
  *   wallac21@wwu.edu
  * 
@@ -33,6 +33,7 @@ int main(int argc, char **argv) {
   snprintf(focusD, sizeof(focusD), "questions");
   if ((d = opendir(focusD)) == NULL) {
     perror("opendir() error\n");
+    exit(0);
   }
   
   /* Add questions to array. Will be used to parse files. */
@@ -42,6 +43,18 @@ int main(int argc, char **argv) {
 
   /* Use filelist to create exams */
   questionC = (int) fmin(fileCount, atoi(argv[3]));
+
+  if (questionC <= 0) { // Check num_questions argument
+    if (fileCount <= 0) { // No questions exist
+      fprintf(stderr, "Error: No questions found, make sure they are placed in the corrrect directory.\n");
+      exit(0);
+    }
+    else { // Invalid Argument (Non-numberical or less than 0
+      fprintf(stderr, "Error: the num_questions requested must be an integer greater than 0.\n");
+      exit(0);
+    }
+  }
+      
 
   generateExams(fileList, courseInfo, questionC, formC);
   
@@ -97,6 +110,15 @@ void generateExams(char **fileList, char **courseInfo, int questionC, int formC)
   char buf[LEN];
   snprintf(buf, sizeof(buf), "./%s/Book/%s/examKey", courseInfo[0], courseInfo[1]);
   key = fopen(buf, "w");
+
+  /* Test to see if path to key is correct
+     This tests to make sure the examKey (and course, Book, and chapter folder) exist
+   */
+  if (!key) {
+    perror("fopen() error. Make sure the following path is valid ./{course}/Book/{chapter}/examKey\n");
+    exit(0);
+  }
+  
   snprintf(buf, sizeof(buf), "%d\n%d\n", formC, questionC);
   fputs(buf, key);
   for (i = 0; i < formC; i++) {
