@@ -8,14 +8,35 @@
 
 #include "createTest.h"
 
+char courseName[20];
+char courseYear[20];
+int testNum;
+int testScore;
+
 /* Usage: course chapter exam_length num_forms 
    ./createTest CSCI247 Chapter1 10 3 */
 int main(int argc, char **argv) {
+
+  
   if (argc != 5) {
     fprintf(stderr, "usage: ./createTest course chapter num_questions num_forms\n");
     exit(0);
   }
-  int questionC;
+  
+  printf("Enter Course Name (e.g. CS 447):\n");
+  fgets(courseName, 20, stdin);
+  courseName[strcspn(courseName, "\n")] = 0;
+  
+  printf("Enter Course Year (e.g. W2021):\n");
+  fgets(courseYear, 20, stdin);
+  courseYear[strcspn(courseYear, "\n")] = 0;
+  
+  printf("Enter Test Number:\n");
+  scanf("%d", &testNum);
+  
+  printf("Enter Total Points:\n");
+  scanf("%d", &testScore);
+  
   int formC = atoi(argv[4]);
   if (0 >= formC || formC > 4) {
     fprintf(stderr, "usage: select between 1 and 4 forms.\n");
@@ -37,12 +58,11 @@ int main(int argc, char **argv) {
   }
   
   /* Add questions to array. Will be used to parse files. */
-  int fileCount;
-  fileCount = countQuestions(d, dir);
+  int fileCount = countQuestions(d, dir);
   char ** fileList = loadQuestions(d, dir, fileCount);
 
   /* Use filelist to create exams */
-  questionC = (int) fmin(fileCount, atoi(argv[3]));
+  int questionC = (int) fmin(fileCount, atoi(argv[3]));
 
   if (questionC <= 0) { // Check num_questions argument
     if (fileCount <= 0) { // No questions exist
@@ -150,8 +170,12 @@ void createExam(FILE *key, char **fileList, char **courseInfo, char form, int qu
     c = fgetc(texH);
   }
   fclose(texH);
-
+  
   /* Specific Test/Year */
+  snprintf(buf, sizeof(buf), "%s, %s - Test %d (%d pts), Form %C\n",
+	   courseName, courseYear, testNum, testScore ,form);
+  fputs(buf, fp);
+  
   c = fgetc(texM);
   while (c != EOF) {
     fputc(c, fp);
