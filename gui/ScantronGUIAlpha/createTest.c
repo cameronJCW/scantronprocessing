@@ -14,11 +14,11 @@ int testNum;
 int testScore;
 
 /* Usage: course chapter exam_length num_forms 
-   ./createTest CSCI247 Chapter1 10 3 */
+   ./createTest CSCI247 Chapter1 3 */
 int main(int argc, char **argv) {
   
-  if (argc != 5) {
-    fprintf(stderr, "usage: ./createTest course chapter num_questions num_forms\n");
+  if (argc != 4) {
+    fprintf(stderr, "usage: ./createTest course chapter num_forms\n");
     exit(0);
   }
   
@@ -36,13 +36,13 @@ int main(int argc, char **argv) {
   printf("Enter Total Points:\n");
   scanf("%d", &testScore);
   
-  int formC = atoi(argv[4]);
+  int formC = atoi(argv[3]);
   if (0 >= formC || formC > 4) {
     fprintf(stderr, "usage: select between 1 and 4 forms.\n");
     exit(0);
   }
   
-  char *courseInfo[2];
+  char *courseInfo[2]; // 0 - Course, 1 - Chapter
   courseInfo[0] = argv[1];
   courseInfo[1] = argv[2];
   
@@ -51,6 +51,7 @@ int main(int argc, char **argv) {
   char focusD[LEN];
   //snprintf(focusD, sizeof(focusD),"./%s/Book/%s",courseInfo[0],courseInfo[1]);
   snprintf(focusD, sizeof(focusD), "questions");
+  
   if ((d = opendir(focusD)) == NULL) {
     perror("opendir() error\n");
     exit(0);
@@ -59,22 +60,22 @@ int main(int argc, char **argv) {
   
   /* Add questions to array. Will be used to parse files. */
   int fileCount = countQuestions(d, dir);
+  printf("filecount:%d\n",fileCount);
   char ** fileList = loadQuestions(d, dir, fileCount);
 
   /* Use filelist to create exams */
-  int questionC = (int) fmin(fileCount, atoi(argv[3]));
+  int questionC = fileCount;//(int) fmin(fileCount, atoi(argv[3]));
 
   if (questionC <= 0) { // Check num_questions argument
     if (fileCount <= 0) { // No questions exist
       fprintf(stderr, "Error: No questions found, make sure they are placed in the corrrect directory.\n");
       exit(0);
     }
-    else { // Invalid Argument (Non-numberical or less than 0
+    else { // Invalid Argument (Non-numberical or less than 0)
       fprintf(stderr, "Error: the num_questions requested must be an integer greater than 0.\n");
       exit(0);
     }
   }
-      
 
   generateExams(fileList, courseInfo, questionC, formC);
   
@@ -214,13 +215,13 @@ void createExam(FILE *key, char **fileList, char **courseInfo, char form, int qu
  * function: get contents from question file and write them to exam tex file,
  *           record correct answers to key file 
  */
-void parseQuestion(FILE *fp, FILE *key, char **fileList, int questionC, int i) {
+void parseQuestion(FILE *fp, FILE *key, char **fileList, int questionC, int questionNum) {
   int x;
   char buf[LEN], buf2[LEN];
   FILE *cQ;
   int answers = 0;
-  snprintf(buf, sizeof(buf), "./questions/%s", fileList[i]);
-  printf("question %d = %s\n", i, buf);
+  snprintf(buf, sizeof(buf), "./questions/%s", fileList[questionNum]);
+  printf("question %d = %s\n", questionNum, buf);
   /* current question */
   cQ = fopen(buf, "r");
   /* Count the number of answers in file */
@@ -230,6 +231,7 @@ void parseQuestion(FILE *fp, FILE *key, char **fileList, int questionC, int i) {
     }
   }
   rewind(cQ);
+  
   /* Populate question list */
   char questionList[answers][LEN];
   int fill = 0;
@@ -264,9 +266,9 @@ void parseQuestion(FILE *fp, FILE *key, char **fileList, int questionC, int i) {
       inV = 0;
       continue;
     } else {
-      if (inQ) {
+      if (inQ) { /* Line is still part of the question */
 	fputs(buf, fp);
-      } else if (inV) {
+      } else if (inV) { /* Line is still part of the verbatim */
 	snprintf(buf2, sizeof(buf2), "    %s", buf);
 	fputs(buf2, fp);
       }
@@ -277,13 +279,14 @@ void parseQuestion(FILE *fp, FILE *key, char **fileList, int questionC, int i) {
   
   /* Key Buffer Sizing */ 
   int digits = 0;
-  if (0 <= i+1 && i+1 < 10) digits = 1;
-  if (10 <= i+1 && i+1 < 100) digits = 2;
+  if (0 <= questionNum+1 && questionNum+1 < 10) digits = 1;
+  if (10 <= questionNum+1 && questionNum+1 < 100) digits = 2;
   char *keyBuf = malloc(10 * sizeof(char));
-  if (digits == 1) keyBuf[2] = (i + 1) + 48;
-  if (digits == 2 ) { keyBuf[2] = (((i + 1) / 10) % 10) + 48; keyBuf[3] = ((i + 1) % 10) + 48; }
+  if (digits == 1) keyBuf[2] = (questionNum + 1) + 48;
+  if (digits == 2 ) { keyBuf[2] = (((questionNum + 1) / 10) % 10) + 48; keyBuf[3] = ((questionNum + 1) % 10) + 48; }
   keyBuf[1] = ' ';
   keyBuf[digits + 2] = ':';
+  
   for (x = 0; x < answers; x++) {
     int xDigits = x + digits + 3;
     //if (questionList[rando[x]][0] == 'A') {
@@ -320,6 +323,22 @@ void parseQuestion(FILE *fp, FILE *key, char **fileList, int questionC, int i) {
   fputs(keyBuf, key);
   fclose(cQ);
 }
+
+void setupKeyBuffer (char *keyBuf, int questionNum) {
+  int digits = 0;
+  /* Determine length of buffer */
+  if (0 <= questionNum+1 && questionNum+1 < 10) digits = 1;
+  if (10 <= questionNum+1 && questionNum+1 < 100) digits = 2;
+  /* Format keyBuf depending on number of questions */
+  if (digits == 1) keyBuf[2] = (questionNum + 1) + 48;
+  if (digits == 2 ) { keyBuf[2] = (((questionNum + 1) / 10) % 10) + 48; keyBuf[3] = ((questionNum + 1) % 10) + 48; }
+  keyBuf[1] = ' ';
+  keyBuf[digits + 2] = ':';
+}
+
+void writeQuestionToFile() {}
+
+void writeAnswerToFile() {}
 
 /* Arrange the N elements of ARRAY in random order.
    Taken from Ben Pfaff: https://benpfaff.org/writings/clc/shuffle.html */
