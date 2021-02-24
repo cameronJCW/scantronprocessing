@@ -16,7 +16,6 @@ int testScore;
 /* Usage: course chapter exam_length num_forms 
    ./createTest CSCI247 Chapter1 10 3 */
 int main(int argc, char **argv) {
-
   
   if (argc != 5) {
     fprintf(stderr, "usage: ./createTest course chapter num_questions num_forms\n");
@@ -42,12 +41,12 @@ int main(int argc, char **argv) {
     fprintf(stderr, "usage: select between 1 and 4 forms.\n");
     exit(0);
   }
-  char **courseInfo;
+  
+  char *courseInfo[2];
   courseInfo[0] = argv[1];
   courseInfo[1] = argv[2];
   
   DIR *d;
-  struct dirent *dir;
   /* d = opendir("/course/questions/"); add exam specific folder at some point */
   char focusD[LEN];
   //snprintf(focusD, sizeof(focusD),"./%s/Book/%s",courseInfo[0],courseInfo[1]);
@@ -56,6 +55,7 @@ int main(int argc, char **argv) {
     perror("opendir() error\n");
     exit(0);
   }
+  struct dirent *dir = readdir(d);
   
   /* Add questions to array. Will be used to parse files. */
   int fileCount = countQuestions(d, dir);
