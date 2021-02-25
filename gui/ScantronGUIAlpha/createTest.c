@@ -21,7 +21,7 @@ int main(int argc, char **argv) {
     fprintf(stderr, "usage: ./createTest course chapter num_forms\n");
     exit(0);
   }
-  
+  /*
   printf("Enter Course Name (e.g. CS 447):\n");
   fgets(courseName, 20, stdin);
   courseName[strcspn(courseName, "\n")] = 0;
@@ -35,7 +35,7 @@ int main(int argc, char **argv) {
   
   printf("Enter Total Points:\n");
   scanf("%d", &testScore);
-  
+  */
   int formC = atoi(argv[3]);
   if (0 >= formC || formC > 4) {
     fprintf(stderr, "usage: select between 1 and 4 forms.\n");
@@ -85,7 +85,8 @@ int main(int argc, char **argv) {
 /* @author Cameron Wallace
  * function: Return the total number of question files in directory
  */
-int countQuestions(DIR *d, struct dirent *dir) {
+int countQuestions(DIR *d,                     //
+		   struct dirent *dir) {       //
   int fileCount = 0;
   int l;
   /* Count total questions in directory */
@@ -104,7 +105,9 @@ int countQuestions(DIR *d, struct dirent *dir) {
 /* @author Cameron Wallace
  * function: Add names of question files to list
  */
-char ** loadQuestions(DIR *d, struct dirent *dir, int fileCount) {
+char ** loadQuestions(DIR *d,                   //
+		      struct dirent *dir,       //
+		      int fileCount) {          //
   int i = 0;
   int l;
   char **fileList = (char **)malloc((fileCount) * sizeof(char *));
@@ -125,7 +128,10 @@ char ** loadQuestions(DIR *d, struct dirent *dir, int fileCount) {
 /* @author Cameron Wallace
  * function: Generate exam and key files
  */
-void generateExams(char **fileList, char **courseInfo, int questionC, int formC) {
+void generateExams(char **fileList,          // List containing question file paths
+		   char **courseInfo,        // List: [Course, Chapter]
+		   int questionC,            // Total number of questions on exam
+		   int formC) {              // Total number of forms
   int i;
   FILE *key;
   char buf[LEN];
@@ -153,7 +159,13 @@ void generateExams(char **fileList, char **courseInfo, int questionC, int formC)
  * function: Get contents from question file and write them to exam tex file,
  *           record correct answers to key file 
  */
-void createExam(FILE *key, char **fileList, char **courseInfo, char form, int questionC, int formC, int currentForm) {
+void createExam(FILE *key,                 // File pointer for exam key
+		char **fileList,           // List containing question file paths
+		char **courseInfo,         // List: [Course, Chapter]
+		char form,                 // Form of current exam: A, B, C or D
+		int questionC,             // Total number of questions on exam
+		int formC,                 // Total number of forms
+		int currentForm) {         // Current form number
   FILE *fp, *texH, *texM, *texE;
   char c;
   char buf[LEN];
@@ -199,7 +211,6 @@ void createExam(FILE *key, char **fileList, char **courseInfo, char form, int qu
   for (i = 0; i < (currentForm * capacity); i++) {
     parseQuestion(fp, key, fileList, questionC, i);
   }
-
   
   /* End */
   c = fgetc(texE);
@@ -215,15 +226,25 @@ void createExam(FILE *key, char **fileList, char **courseInfo, char form, int qu
  * function: get contents from question file and write them to exam tex file,
  *           record correct answers to key file 
  */
-void parseQuestion(FILE *fp, FILE *key, char **fileList, int questionC, int questionNum) {
-  int x;
-  char buf[LEN], buf2[LEN];
+void parseQuestion(FILE *fp,                 // File pointer for exam
+		   FILE *key,                // File pointer for exam key
+		   char **fileList,          // List containing question file paths
+		   int questionC,            // Number of total questions
+		   int questionNum) {        // Number of current question
+  char buf[LEN];
   FILE *cQ;
   int answers = 0;
+
   snprintf(buf, sizeof(buf), "./questions/%s", fileList[questionNum]);
   printf("question %d = %s\n", questionNum, buf);
+
   /* current question */
   cQ = fopen(buf, "r");
+  /*
+  if (fgetc(cQ) == 'L') {
+    printf("L\n");
+  }
+  */
   /* Count the number of answers in file */
   while (fgets(buf, LEN, cQ) != NULL) {
     if ((buf[0] == 'A' || buf[0] == 'X') && buf[1] == '-') {
@@ -231,21 +252,50 @@ void parseQuestion(FILE *fp, FILE *key, char **fileList, int questionC, int ques
     }
   }
   rewind(cQ);
-  
-  /* Populate question list */
-  char questionList[answers][LEN];
-  int fill = 0;
-  while (fgets(buf, LEN, cQ) != NULL) {
-    if ((buf[0] == 'A' || buf[0] == 'X') && buf[1] == '-') {
-      strcpy(questionList[fill], buf);
-      fill++;
-    }
+
+  /* Write to new file */
+  writeQuestionToFile(fp, cQ);
+
+  /* Key Buffer Sizing */
+  char *keyBuf = malloc(10 * sizeof(char));
+  int digits = setupKeyBuffer(keyBuf, questionNum);
+
+  /* Write answers to file */
+  rewind(cQ);
+  writeAnswersToFile(fp, key, cQ, keyBuf, answers, digits, false);
+
+  fclose(cQ);
+}
+
+/* @author Cameron Wallace
+ * function: Helper for parseQuestions
+ */
+int setupKeyBuffer (char *keyBuf,            // Buffer used to generate exam key
+		    int questionNum) {       // Number of questions on the exam
+  int digits = 0;
+  /* Determine length of buffer */
+  if (0 <= questionNum+1 && questionNum+1 < 10) digits = 1;
+  if (10 <= questionNum+1 && questionNum+1 < 100) digits = 2;
+
+  /* Format keyBuf depending on number of questions */
+  if (digits == 1) keyBuf[2] = (questionNum + 1) + 48;
+  if (digits == 2 ) {
+    keyBuf[2] = (((questionNum + 1) / 10) % 10) + 48;
+    keyBuf[3] = ((questionNum + 1) % 10) + 48;
   }
-  
-  /* Randomize order of questions */
-  int rando[answers];
-  shuffle(rando, answers);
-  
+  keyBuf[1] = ' ';
+  keyBuf[digits + 2] = ':';
+
+  return digits;
+}
+
+/* @author Cameron Wallace
+ * function: Helper for parseQuestions
+ */
+void writeQuestionToFile(FILE *fp,            // File pointer for the exam
+			 FILE *cQ) {          // File pointer for the current question
+  char buf[LEN];
+  char buf2[LEN];
   /* Write to new file */
   int inQ = 0, inV = 0; /* In question or In verbatim */
   rewind(cQ);
@@ -274,30 +324,48 @@ void parseQuestion(FILE *fp, FILE *key, char **fileList, int questionC, int ques
       }
     }
   }
+}
+
+/* @author Cameron Wallace
+ * function: Helper for parseQuestions
+ */
+void writeAnswersToFile(FILE *fp,                  // File pointer for exam
+			FILE *key,                 // File pointer for exam key
+			FILE *cQ,                  // File pointer for current question
+			char *keyBuf,              // Buffer used to generate exam key 
+			int ans,                   //
+			int d,                     //
+			bool randomize) {          //
+  int i;
+  char buf[LEN];
+  char buf2[LEN];
+
+  /* Populate answer list */
+  char answerList[ans][LEN];
+  int fill = 0;
+  while (fgets(buf, LEN, cQ) != NULL) {
+    if ((buf[0] == 'A' || buf[0] == 'X') && buf[1] == '-') {
+      strcpy(answerList[fill], buf);
+      fill++;
+    }
+  }
+  
+  /* Randomize order of questions */
+  if (randomize) { // qL[i] -> qL[rando[i]]
+    int rando[ans];
+    shuffle(rando, ans);
+  }
+  
   char correct;
   fputs("  \\begin{enumerate}\n", fp);
-  
-  /* Key Buffer Sizing */ 
-  int digits = 0;
-  if (0 <= questionNum+1 && questionNum+1 < 10) digits = 1;
-  if (10 <= questionNum+1 && questionNum+1 < 100) digits = 2;
-  char *keyBuf = malloc(10 * sizeof(char));
-  if (digits == 1) keyBuf[2] = (questionNum + 1) + 48;
-  if (digits == 2 ) { keyBuf[2] = (((questionNum + 1) / 10) % 10) + 48; keyBuf[3] = ((questionNum + 1) % 10) + 48; }
-  keyBuf[1] = ' ';
-  keyBuf[digits + 2] = ':';
-  
-  for (x = 0; x < answers; x++) {
-    int xDigits = x + digits + 3;
-    //if (questionList[rando[x]][0] == 'A') {
-    if (questionList[x][0] == 'A') {   
-      //snprintf(buf, sizeof(buf), "  \\item %s", questionList[rando[x]] + 2);
-      snprintf(buf, sizeof(buf), "  \\item %s", questionList[x] + 2);
+  for (i = 0; i < ans; i++) {
+    int dCount = i + d + 3;
+    if (answerList[i][0] == 'A') {   /* Non-Answer */
+      snprintf(buf, sizeof(buf), "  \\item %s", answerList[i] + 2);
       fputs(buf, fp);
-      keyBuf[xDigits] = (x+1) + 48;
-      //} else if (questionList[rando[x]][0] == 'X') {
-    } else if (questionList[x][0] == 'X') {  /* Answer */
-      switch(x) {
+      keyBuf[dCount] = (i+1) + 48;
+    } else if (answerList[i][0] == 'X') {  /* Answer */
+      switch(i) {
       case 0: correct = 'a'; break;
       case 1: correct = 'b'; break;
       case 2: correct = 'c'; break;
@@ -305,8 +373,7 @@ void parseQuestion(FILE *fp, FILE *key, char **fileList, int questionC, int ques
       case 4: correct = 'e'; break;
       }
       char tmp[LEN];
-      //snprintf(buf, sizeof(buf), "  \\item %s", questionList[rando[x]] + 2);
-      snprintf(buf, sizeof(buf), "  \\item %s", questionList[x] + 2);
+      snprintf(buf, sizeof(buf), "  \\item %s", answerList[i] + 2);
       strcpy(tmp, buf+1);
       if (tmp[strlen(tmp) - 1] == '\n') {
 	tmp[strlen(tmp) - 1] = '\0';
@@ -314,35 +381,20 @@ void parseQuestion(FILE *fp, FILE *key, char **fileList, int questionC, int ques
       snprintf(buf2, sizeof(buf2), "  %s  \\ans{%c}\n", tmp + 1, correct);
       fputs(buf2, fp);
       keyBuf[0] = correct;
-      keyBuf[xDigits] = (x+1) + 48;
+      keyBuf[dCount] = (i+1) + 48;
     }
   }
+  
   fputs("  \\end{enumerate}\n\n", fp);
   char nl = '\n';
   strncat(keyBuf, &nl, 1); 
   fputs(keyBuf, key);
-  fclose(cQ);
 }
-
-void setupKeyBuffer (char *keyBuf, int questionNum) {
-  int digits = 0;
-  /* Determine length of buffer */
-  if (0 <= questionNum+1 && questionNum+1 < 10) digits = 1;
-  if (10 <= questionNum+1 && questionNum+1 < 100) digits = 2;
-  /* Format keyBuf depending on number of questions */
-  if (digits == 1) keyBuf[2] = (questionNum + 1) + 48;
-  if (digits == 2 ) { keyBuf[2] = (((questionNum + 1) / 10) % 10) + 48; keyBuf[3] = ((questionNum + 1) % 10) + 48; }
-  keyBuf[1] = ' ';
-  keyBuf[digits + 2] = ':';
-}
-
-void writeQuestionToFile() {}
-
-void writeAnswerToFile() {}
 
 /* Arrange the N elements of ARRAY in random order.
    Taken from Ben Pfaff: https://benpfaff.org/writings/clc/shuffle.html */
-void shuffle(int *array, size_t n) {
+void shuffle(int *array,  // array to be shuffled
+	     size_t n) {  // size of array
   if (n > 1) {
     size_t i;
     for (i = 0; i < n - 1; i++) {
