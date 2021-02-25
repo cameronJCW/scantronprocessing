@@ -21,7 +21,7 @@ int main(int argc, char **argv) {
     fprintf(stderr, "usage: ./createTest course chapter num_forms\n");
     exit(0);
   }
-  /*
+  
   printf("Enter Course Name (e.g. CS 447):\n");
   fgets(courseName, 20, stdin);
   courseName[strcspn(courseName, "\n")] = 0;
@@ -35,7 +35,7 @@ int main(int argc, char **argv) {
   
   printf("Enter Total Points:\n");
   scanf("%d", &testScore);
-  */
+
   int formC = atoi(argv[3]);
   if (0 >= formC || formC > 4) {
     fprintf(stderr, "usage: select between 1 and 4 forms.\n");
@@ -85,8 +85,8 @@ int main(int argc, char **argv) {
 /* @author Cameron Wallace
  * function: Return the total number of question files in directory
  */
-int countQuestions(DIR *d,                     //
-		   struct dirent *dir) {       //
+int countQuestions(DIR *d,                     // Current working directory
+		   struct dirent *dir) {       // Directory entry
   int fileCount = 0;
   int l;
   /* Count total questions in directory */
@@ -105,9 +105,9 @@ int countQuestions(DIR *d,                     //
 /* @author Cameron Wallace
  * function: Add names of question files to list
  */
-char ** loadQuestions(DIR *d,                   //
-		      struct dirent *dir,       //
-		      int fileCount) {          //
+char ** loadQuestions(DIR *d,                   // Current working directory
+		      struct dirent *dir,       // Directory entry
+		      int fileCount) {          // Number of files in directory
   int i = 0;
   int l;
   char **fileList = (char **)malloc((fileCount) * sizeof(char *));
