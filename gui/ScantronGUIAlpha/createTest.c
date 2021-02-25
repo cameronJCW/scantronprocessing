@@ -204,12 +204,27 @@ void createExam(FILE *key,                 // File pointer for exam key
   fputs(buf, key);
   int capacity = questionC / formC;
   //int overflow = questionC % formC;
+  int longAnswers[questionC];
   int i;
   for (i = (currentForm * capacity); i < questionC; i++) {
-    parseQuestion(fp, key, fileList, questionC, i);
+    if (parseQuestion(fp, key, fileList, questionC, i) < 0) {
+      longAnswers[i] = 1;
+    }
   }
   for (i = 0; i < (currentForm * capacity); i++) {
-    parseQuestion(fp, key, fileList, questionC, i);
+    if (parseQuestion(fp, key, fileList, questionC, i) < 0) {
+      longAnswers[i] = 1;
+    }
+  }
+  
+  /* Put the long answer questions at the end */
+  for (i = 0; i < questionC; i++) {
+    if (longAnswers[i] == 1) {
+      snprintf(buf, sizeof(buf), "./questions/%s", fileList[i]);
+      FILE *cQ = fopen(buf, "r");
+      writeQuestionToFile(fp, cQ);
+      fputs("\n", fp);
+    }
   }
   
   /* End */
@@ -226,7 +241,7 @@ void createExam(FILE *key,                 // File pointer for exam key
  * function: get contents from question file and write them to exam tex file,
  *           record correct answers to key file 
  */
-void parseQuestion(FILE *fp,                 // File pointer for exam
+int parseQuestion(FILE *fp,                 // File pointer for exam
 		   FILE *key,                // File pointer for exam key
 		   char **fileList,          // List containing question file paths
 		   int questionC,            // Number of total questions
@@ -240,13 +255,12 @@ void parseQuestion(FILE *fp,                 // File pointer for exam
 
   /* current question */
   cQ = fopen(buf, "r");
-  /*
-  if (fgetc(cQ) == 'L') {
-    printf("L\n");
-  }
-  */
+
   /* Count the number of answers in file */
   while (fgets(buf, LEN, cQ) != NULL) {
+    if (buf[0] == 'L') {
+      return -1;
+    }
     if ((buf[0] == 'A' || buf[0] == 'X') && buf[1] == '-') {
       answers++;
     }
@@ -265,6 +279,7 @@ void parseQuestion(FILE *fp,                 // File pointer for exam
   writeAnswersToFile(fp, key, cQ, keyBuf, answers, digits, false);
 
   fclose(cQ);
+  return 0;
 }
 
 /* @author Cameron Wallace
@@ -296,11 +311,12 @@ void writeQuestionToFile(FILE *fp,            // File pointer for the exam
 			 FILE *cQ) {          // File pointer for the current question
   char buf[LEN];
   char buf2[LEN];
+  
   /* Write to new file */
   int inQ = 0, inV = 0; /* In question or In verbatim */
   rewind(cQ);
   while (fgets(buf, LEN, cQ) != NULL) {
-    if (buf[0] == 'Q' && buf[1] == '-') { /* Question */
+    if ((buf[0] == 'Q' || buf[0] == 'L') && buf[1] == '-') { /*  Question */
       inQ = 1;
       snprintf(buf2, sizeof(buf2), "\\item (3 points) %s", buf + 2);
       fputs(buf2, fp);
@@ -322,7 +338,11 @@ void writeQuestionToFile(FILE *fp,            // File pointer for the exam
 	snprintf(buf2, sizeof(buf2), "    %s", buf);
 	fputs(buf2, fp);
       }
-    }
+    }    
+  }
+  if (inV == 1) {
+    snprintf(buf2, sizeof(buf2), "\\end{verbatim}\n");
+    fputs(buf2, fp);
   }
 }
 

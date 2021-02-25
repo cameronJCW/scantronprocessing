@@ -25,7 +25,7 @@
 int countQuestions(DIR *d, struct dirent *dir);
 char** loadQuestions(DIR *d, struct dirent *dir, int fileCount);
 
-void parseQuestion(FILE *fp, FILE *afp, char **fileList, int questionC, int i);
+int parseQuestion(FILE *fp, FILE *afp, char **fileList, int questionC, int i);
 void writeQuestionToFile(FILE *fp, FILE *cQ);
 void writeAnswersToFile(FILE *fp, FILE *key, FILE *cQ, char *keyBuf, int ans, int d, bool randomize);
 
