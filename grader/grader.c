@@ -16,6 +16,8 @@ char **getAnswers(Image *img, CacheView *cache, int maxQ, int baseX, int baseY);
 char **getMetaInfo(Image *img, CacheView *cache);
 char *getVerticalItem(Image *img, CacheView *cache, int entries, int baseX, int baseY, int form);
 void drawOnAnswers(Image *img, CacheView *cache, int x, int y);
+Image *manualCrop(Image *img);
+Image *manualCropRobust(Image *img);
 
 ExceptionInfo *exception;
 ImageInfo *imageInfo;
@@ -32,7 +34,7 @@ int main(int argc, char **argv) {
 	} else {
 		strncpy(imgPath, argv[1], 1000);
 	}
-	DEBUG = argc >= 2 && argv[2][0] == 'T';
+	DEBUG = argc > 2 && argv[2][0] == 'T';
 
 	char cwd[1024];
 	getcwd(cwd, sizeof(cwd));
@@ -46,6 +48,9 @@ int main(int argc, char **argv) {
 
 void getRGB(Quantum *pixel, float rgb[3]) {
 	for(int i=0; i<3; i++) {
+		if(QuantumRange != 65535) {
+			printf("ERROR\n");
+		}
 		rgb[i] = roundf((pixel[i]/QuantumRange) * 255);
 	}
 }
@@ -100,17 +105,253 @@ void writeImg(Image *out, const char *name) {
 }
 
 void rotateAndCrop() {
-	DefineImageProperty(img, "deskew:auto-crop", exception);
+	//DefineImageProperty(img, "deskew:auto-crop", exception);
 	img = DeskewImage(img, 1, exception);
+	if(DEBUG) {
+		writeImg(img, "../TestOut/unskew.jpg");
+	}
+	//img = manualCrop(img);
+	img = manualCropRobust(img);
 	img = ScaleImage(img, 1200, 2200, exception);
 	if(DEBUG) {
-		writeImg(img, "../TestOut/fixed.jpg");
+		writeImg(img, "../TestOut/cropped.jpg");
 	}
+}
+
+Image *manualCrop(Image *img) {
+	int maxY = img->rows;
+	int maxX = img->columns;
+	CacheView *cache = AcquireAuthenticCacheView(img, exception);
+	//if true need manual cropping
+	//fabs((double)maxY/(double)maxX - 11.0/6.0) >= 0.001
+	if(1) {
+		//identify black sliver in top right
+		int x = maxX-1;
+		int y = 20;
+		//int limit = round(3*maxX / 4);
+		int state = 0;
+		float rgb[3];
+		int pencilthreshold = 150;		//TODO make this a global constant
+		int upperLeft[2] = {-1, -1};
+		int bottomRight[2] = {-1, -1};
+		int boxCount = 0;
+		int inBox = 0;
+		int offset = -1;
+		int pagewidth = -1;
+		//276 323
+		//Quantum *p = GetCacheViewAuthenticPixels(cache, x, y, 1, 1, exception);
+		//getRGB(p, rgb);
+		//printf("%d,%d: %f|%f|%f\n", x, y, rgb[0], rgb[1], rgb[2]);
+		//return img;
+		while(x >= 0 && x < maxX && y >= 0 && y < maxY && state != 5) {	//x > limit
+			//printf("State: %d x: %d y: %d\n", state, x, y);
+			Quantum *p = GetCacheViewAuthenticPixels(cache, x, y, 1, 1, exception);
+			CatchException(exception);
+			getRGB(p, rgb);
+			if(state == 0) { //finds x coord of top-right sliver
+				if(rgb[0] < pencilthreshold || rgb[1] < pencilthreshold || rgb[2] < pencilthreshold) {
+					state = 1;
+				} else {
+					x--;
+				}
+			} else if(state == 1) { //finds bottom of top-right sliver
+				if(rgb[0] > pencilthreshold && rgb[1] > pencilthreshold && rgb[2] > pencilthreshold) {
+					state = 2;
+					//printf("Sliver: %d %d\n", x, y);
+					upperLeft[1] = y;
+					offset = maxX - x;
+					pagewidth = maxX - 2*offset;
+					x = (int) round((double)pagewidth * 0.95) + offset;
+				}
+				y++;
+			} else if(state == 2) { //finds bottom edge of bottom-right rectangle
+				if(rgb[0] < pencilthreshold && rgb[1] < pencilthreshold && rgb[2] < pencilthreshold) {
+					if(!inBox) {
+						boxCount++;
+						//printf("Boxes: %d %d,%d\n", boxCount, x, y);
+						inBox = 1;
+					}
+				} else {
+					if(inBox) {
+						bottomRight[1] = y-1;
+						if(boxCount == 62) {
+							state = 3;
+							y -= 2;
+						}
+					}
+					inBox = 0;
+				}
+				y++;
+			} else if(state == 3) {	//finds right edge of bottom-right rectangle
+				if(rgb[0] > pencilthreshold && rgb[1] > pencilthreshold && rgb[2] > pencilthreshold) {
+					state = 4;
+					bottomRight[0] = x;
+					//offset = maxX - x;
+					//pagewidth = maxX - 2*offset;
+					x = (int) round((double)pagewidth * 0.04) + offset;
+				} else {
+					x++;
+				}
+			} else if(state == 4) {
+				if(rgb[0] < pencilthreshold && rgb[1] < pencilthreshold && rgb[2] < pencilthreshold) {
+					state = 5;
+					upperLeft[0] = x;
+				} else {
+					x++;
+				}
+			}
+		}
+		//printf("%d\n", x);
+		x = upperLeft[0];
+		y = upperLeft[1];
+		int w = bottomRight[0] - upperLeft[0];
+		int h = bottomRight[1] - upperLeft[1];
+		RectangleInfo tmp;
+		tmp.x = x;
+		tmp.y = y;
+		tmp.width = w;
+		tmp.height = h;
+		img = CropImage(img, &tmp, exception);
+		CatchException(exception);
+		if(DEBUG) {
+			printf("x: %d, y: %d, w: %d, h: %d\n", tmp.x, y, w, h);
+		}
+	}
+	return img;
+}
+
+Image *manualCropRobust(Image *img) {
+	int maxY = img->rows;
+	int maxX = img->columns;
+	printf("%d %d\n", maxX, maxY);
+	CacheView *cache = AcquireAuthenticCacheView(img, exception);
+	//if true need manual cropping
+	//fabs((double)maxY/(double)maxX - 11.0/6.0) >= 0.001
+	if(1) {
+		//identify black sliver in top right
+		int x = 0;
+		int y = maxY-1;
+		//int limit = round(3*maxX / 4);
+		int count = 0;
+		int state = 0;
+		float rgb[3];
+		int boxThreshold = 100;		//TODO make this a global constant, maybe not?
+		int upperLeft[2] = {-1, -1};
+		int bottomRight[2] = {-1, -1};
+		int boxCount = 0;
+		int inBox = 0;
+		int offset = -1;
+		int pagewidth = -1;
+		int boxPos = -1;
+		int xHalf = round(maxX / 2);
+		//276 323
+		//Quantum *p = GetCacheViewAuthenticPixels(cache, x, y, 1, 1, exception);
+		//getRGB(p, rgb);
+		//printf("%d,%d: %f|%f|%f\n", x, y, rgb[0], rgb[1], rgb[2]);
+		//return img;
+		while(x >= 0 && x < maxX && y >= 0 && y < maxY && state != 4) {	//x > limit
+			//printf("State: %d x: %d y: %d\n", state, x, y);
+			Quantum *p = GetCacheViewAuthenticPixels(cache, x, y, 1, 1, exception);
+			CatchException(exception);
+			getRGB(p, rgb);
+			if(state == 0) {
+				if(rgb[0] < boxThreshold && rgb[1] < boxThreshold && rgb[2] < boxThreshold) {
+					state = 1;
+					printf("x: %d, y: %d\n", x, y);
+					//printf("r: %f g: %f b: %f\n", rgb[0], rgb[1], rgb[2]);
+					upperLeft[0] = x;
+					bottomRight[1] = y+1;
+					x += 5;
+					y -= 5;
+				} else {
+					x++;
+					if(x > xHalf) {
+						x = 0;
+						y -= 1;
+					}
+				}
+			} else if(state == 1) {
+				if(rgb[0] > boxThreshold && rgb[1] > boxThreshold && rgb[2] > boxThreshold) {
+					printf("x: %d, y: %d\n", x, y);
+					printf("%f, %f, %f\n", rgb[0], rgb[1], rgb[2]);
+					state = 2;
+					//scanline through the middle of lower left box (horizontal)
+					y += round((bottomRight[1] - y) / 2);
+					x = xHalf;
+					printf("Scanline: %d\n", y);
+				} else {
+					y--;
+				}
+			} else if(state == 2) {
+				if(rgb[0] < boxThreshold && rgb[1] < boxThreshold && rgb[2] < boxThreshold) {
+					if(!inBox) {
+						//printf("Boxes: %d %d,%d\n", boxCount, x, y);
+						inBox = 1;
+						boxPos = x;
+						printf("BoxPos %d\n", boxPos);
+						//boxCount = 1;
+					}
+				} else {
+					if(inBox) {
+						printf("x: %d, y: %d\n", x, y);
+						bottomRight[0] = x;
+						state = 3;
+						//scanline through middle of lower right box (vertical)
+						x -= round((x - boxPos) / 2);
+					} else {
+						//printf("%d,%d: %f, %f, %f\n", x, y, rgb[0], rgb[1], rgb[2]);
+					}
+				}
+				x++;
+			} else if(state == 3) {
+				if(rgb[0] < boxThreshold && rgb[1] < boxThreshold && rgb[2] < boxThreshold) {
+					if(!inBox) {
+						inBox = 1;
+					}
+				} else {
+					if(inBox) {
+						boxCount++;
+						printf("Boxes: %d %d,%d\n", boxCount, x, y);
+						if(boxCount == 62) {
+							upperLeft[1] = y+1;
+							state = 4;
+							//y += 2;
+						}
+					}
+					inBox = 0;
+				}
+				y--;
+			}
+		}
+		//printf("%d\n", x);
+		x = upperLeft[0];
+		y = upperLeft[1];
+		int w = bottomRight[0] - upperLeft[0];
+		int h = bottomRight[1] - upperLeft[1];
+		int expand = round(h * 0.0083456);
+		printf("Expand: %d\n", expand);
+		y -= expand;
+		h += expand;
+		printf("x: %d, y: %d, w: %d, h: %d\n", x, y, w, h);
+		RectangleInfo tmp;
+		tmp.x = x + img->page.x;
+		tmp.y = y  + img->page.y;
+		tmp.width = w;
+		tmp.height = h;
+		printf("x: %d, y: %d, w: %d, h: %d\n", tmp.x, tmp.y, tmp.width, tmp.height);
+		img = CropImage(img, &tmp, exception);
+		CatchException(exception);
+		if(DEBUG) {
+			printf("x: %d, y: %d, w: %d, h: %d\n", x, y, w, h);
+			printf("x: %d, y: %d, w: %d, h: %d\n", tmp.x, tmp.y, tmp.width, tmp.height);
+		}
+	}
+	return img;
 }
 
 void processImg(Image *img, int maxQ, FILE *file) {
 	CacheView *cache = AcquireAuthenticCacheView(img, exception);
-	char **answers = getAnswers(img, cache, maxQ, 95, 446);
+	char **answers = getAnswers(img, cache, maxQ, 29, 400);		//old: 95, 446
 	char **meta = getMetaInfo(img, cache);
 
 	if(DEBUG) {
@@ -130,10 +371,10 @@ void processImg(Image *img, int maxQ, FILE *file) {
 }
 
 char **getMetaInfo(Image *img, CacheView *cache) {
-	char **info = malloc(sizeof(char *) * 3);
-	info[0] = getVerticalItem(img, cache, 8, 460, 80, 0);
-	info[1] = getVerticalItem(img, cache, 1, 861, 80, 1);
-	info[2] = getVerticalItem(img, cache, 3, 962, 80, 0);
+	char **info = malloc(sizeof(char *) * 3);	//429
+	info[0] = getVerticalItem(img, cache, 8, 429, 10, 0);		//old: 8,460,80,0
+	info[1] = getVerticalItem(img, cache, 1, 867, 10, 1);		//old: 1,861,80,1
+	info[2] = getVerticalItem(img, cache, 3, 976, 10, 0);		//old: 3,962,80,0
 	return info;
 }
 
@@ -147,8 +388,10 @@ char *getVerticalItem(Image *img, CacheView *cache, int entries, int baseX, int 
 			rows = 4;
 		}
 		for(int j=0; j<rows; j++) {
-			int x = baseX + round(i*33.5);
-			int y = baseY + (int) round(j*33.28);
+			//int x = baseX + round(i*33.5);
+			int x = baseX + round(i*36.8);
+			//int y = baseY + (int) round(j*33.28);
+			int y = baseY + (int) round(j*35.35);
 			int res = readBubble(cache, x, y);
 			if(res) {
 				if(form) {
@@ -181,8 +424,11 @@ char **getAnswers(Image *img, CacheView *cache, int maxQ, int baseX, int baseY) 
 			if(j == 0) {
 				answers[i] = calloc(20, sizeof(char *));
 			}
-			int x = baseX + round(c*266) + round(j*33.5);
-			int y = baseY + (int) round(r*33.28);
+			//int x = baseX + round(c*266) + round(j*33.5);
+			int x = baseX + round(c*292) + round(j*36.8);
+			//int y = baseY + (int) round(r*33.28);
+			int y = baseY + (int) round(r*35.5);
+			//TODO: insert check for out of bounds
 			int res = readBubble(cache, x, y);
 			if(res) {
 				strncpy(&answers[i][answerIdx], bubbles[j], 20-answerIdx);
