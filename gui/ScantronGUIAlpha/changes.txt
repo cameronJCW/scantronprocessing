@@ -1,0 +1,23 @@
+I wanted the questions organized by chapters ... but the test creation
+tool I wanted to be able to pick and choose questions.  For example I
+may have 6 questions about MMUs, but may want to pick only 2 for a
+given test.  So I was expecting this this tool to be an interactive one.
+That is why I was somewhat expecting it to be part of a test question
+pool editor and "database" and then a test creation part of the GUI.
+
+Here is my tree I currently have:
+
+   .../Class
+         /number  (like 447)
+            /QTR   (like w21 or f20 or s18 ... or even now sm21)
+               /grades  (where I keep my grades and when doing it by
+                         hand, my test scans and grading of them.)
+               /plan  (where I had my tests, syllabus and assignments)
+               /lec   (lecture slides)
+               (and other ones for classes.)
+
+So, if I was going to have a test question bank it might be:
+       .../Class/447/test-db
+
+And then I'd want the tests to  be written to the ../Class/447/qtr/plan
+directory .. which might be doable by running it in that directory.
