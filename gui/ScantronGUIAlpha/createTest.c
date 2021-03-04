@@ -12,15 +12,39 @@ char courseName[20];
 char courseYear[20];
 int testNum;
 int testScore;
-
+ 
 /* Usage: course chapter exam_length num_forms 
-   ./createTest CSCI247 Chapter1 3 */
+ * ./createTest CSCI247 Chapter1 3 
+ *
+ *  args:  -f   -- number of forms
+ *         -r   -- randomize order of m/c answers
+ *         -
+ *  
+ */
+
 int main(int argc, char **argv) {
+  int formC;
+  
+  /* Option Data 
+  while ((ch = getopt(argc, argv, "drTs:x:y:z:n:")) != -1) {
+    switch (ch) {
+  */
   
   if (argc != 4) {
     fprintf(stderr, "usage: ./createTest course chapter num_forms\n");
     exit(0);
   }
+
+  /* Number of forms to generate */
+  formC = atoi(argv[3]);
+  if (0 >= formC || formC > 4) {
+    fprintf(stderr, "usage: select between 1 and 4 forms.\n");
+    exit(0);
+  }
+  
+  char *courseInfo[2]; // 0 - Course, 1 - Chapter
+  courseInfo[0] = argv[1];
+  courseInfo[1] = argv[2];
   
   printf("Enter Course Name (e.g. CS 447):\n");
   fgets(courseName, 20, stdin);
@@ -35,16 +59,6 @@ int main(int argc, char **argv) {
   
   printf("Enter Total Points:\n");
   scanf("%d", &testScore);
-
-  int formC = atoi(argv[3]);
-  if (0 >= formC || formC > 4) {
-    fprintf(stderr, "usage: select between 1 and 4 forms.\n");
-    exit(0);
-  }
-  
-  char *courseInfo[2]; // 0 - Course, 1 - Chapter
-  courseInfo[0] = argv[1];
-  courseInfo[1] = argv[2];
   
   DIR *d;
   /* d = opendir("/course/questions/"); add exam specific folder at some point */
@@ -64,7 +78,7 @@ int main(int argc, char **argv) {
   char ** fileList = loadQuestions(d, dir, fileCount);
 
   /* Use filelist to create exams */
-  int questionC = fileCount;//(int) fmin(fileCount, atoi(argv[3]));
+  int questionC = fileCount;
 
   if (questionC <= 0) { // Check num_questions argument
     if (fileCount <= 0) { // No questions exist
@@ -80,7 +94,7 @@ int main(int argc, char **argv) {
   generateExams(fileList, courseInfo, questionC, formC);
   
   return(0);
-}
+} 
 
 /* @author Cameron Wallace
  * function: Return the total number of question files in directory
@@ -403,7 +417,7 @@ void writeAnswersToFile(FILE *fp,                  // File pointer for exam
   char correct;
   fputs("  \\begin{enumerate}\n", fp);
   for (i = 0; i < ans; i++) {
-    dCount = i + d + 3;
+    dCount = i + digits + 3;
     /* Non-Answer */
     if (answerList[i][0] == 'A') {   
       snprintf(buf, sizeof(buf), "  \\item %s", answerList[i] + 2);
