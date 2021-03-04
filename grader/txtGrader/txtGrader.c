@@ -19,7 +19,7 @@ int main(int argc, char **argv) {
 	char wNum[15];
 	double studentScores[MAXLINE*2];
 
-	FILE *testFile, *keyFile, *gradeFile, *statsFile, *classList;
+	FILE *testFile, *keyFile, *gradeFile, *statsFile, *classList, *statsFile2;
 
 	int testIterator = 1;
 	int max = 0;
@@ -27,7 +27,7 @@ int main(int argc, char **argv) {
 	double average = 0;
 
 	if(argc != 4){
-		fprintf(stderr, "Bad input. Usage:\n./txtGrader path_to_tests path_to_keys/keyFile.txt path_to_classList/classList\n");
+		fprintf(stderr, "Bad input. Usage:\n./txtGrader [path_to_tests] [path_to_key/keyFile.txt] [path_to_classList/classList]\n");
 		exit(EXIT_FAILURE);
 	}
 
@@ -68,6 +68,7 @@ int main(int argc, char **argv) {
 	memset(testStats, 0, numQuestions*4*sizeof(int));
 	gradeFile = fopen("grades.csv", "w+");
 	statsFile = fopen("stats.csv", "w+");
+	statsFile2 = fopen("stats2.csv", "w+");
 	fprintf(gradeFile, "name,,mc,essay,total\n");
 
 //Start grabbing and grading exams
@@ -96,14 +97,18 @@ int main(int argc, char **argv) {
 
 		int numCorrect = 0;
 		int currentQ = 1;
+		int wasCorrect = 0;
 		while(fgets(ans, MAXLINE, testFile) != NULL){
 			if(currentQ > numQuestions){
 				fprintf(stderr, "Number of questions exceeded indicated number of questions.\n");
 				exit(EXIT_FAILURE);
 			}
-			numCorrect = numCorrect + gradeQuestion(ans, keys[version][currentQ-1], testStats);
+			wasCorrect =  gradeQuestion(ans, keys[version][currentQ-1], testStats);
+			numCorrect += wasCorrect;
 			currentQ++;
+			fprintf(statsFile2, "%d,", wasCorrect);
 		}
+		fprintf(statsFile2, "\n");
 		if(numCorrect > max){
 			max = numCorrect;
 		}
@@ -119,9 +124,10 @@ int main(int argc, char **argv) {
 		char* name = getName(wNum, classList, ans);
 		if(name == NULL){
 			fprintf(stderr, "student name not found for wNum %s\n", wNum);
-			exit(EXIT_FAILURE);
+			fprintf(gradeFile, "%s, ,%d,,=C%d+D%d\n", wNum, numCorrect, testIterator, testIterator);
+		}else{
+			fprintf(gradeFile, "%s,%d,,=C%d+D%d\n", name, numCorrect, testIterator, testIterator);
 		}
-		fprintf(gradeFile, "%s,%d,,=C%d+D%d\n", name, numCorrect, testIterator, testIterator);
 		studentScores[testIterator-2] = numCorrect;
 		fclose(testFile);
 	}
@@ -132,12 +138,12 @@ int main(int argc, char **argv) {
 	double variance;
 	double stdDev;
 
-	fprintf(statsFile, "Question Number - Answer,A,B,C,D,percent correct\n");
+	fprintf(statsFile, "Question Number,Answer,A,B,C,D,percent correct\n");
 	for(int i=0; i<numQuestions; i++){
-		double numCorrect = testStats[i][keys[0][i][0] - 65];
-		fprintf(statsFile, "%d - %c,%d,%d,%d,%d,%.2f\n", i+1, keys[0][i][0],\
+		double percentCorrect = ((testStats[i][keys[0][i][0] - 65]/numStudent)*100);
+		fprintf(statsFile, "%d,%c,%d,%d,%d,%d,%.2f\n", i+1, keys[0][i][0],\
 				testStats[i][0], testStats[i][1], testStats[i][2], testStats[i][3],\
-				(numCorrect/numStudent)*100);
+				percentCorrect);
 	}
 	average = average/numStudent;
 	for(int i=0; i < numStudent; i++){
@@ -147,14 +153,12 @@ int main(int argc, char **argv) {
 	stdDev = sqrt(variance);
 
 	fprintf(statsFile, "\n" );
-	fprintf(statsFile, "min - %d\n", min);
-	fprintf(statsFile, "max - %d\n", max);
-	fprintf(statsFile, "average - %.2f\n", average);
-	fprintf(statsFile, "variance - %.2f\n", variance);
-	fprintf(statsFile, "standard deviation - %.2f\n", stdDev);
+	fprintf(statsFile, "Min,%d\n", min);
+	fprintf(statsFile, "Max,%d\n", max);
+	fprintf(statsFile, "Mean,%.2f\n", average);
+	fprintf(statsFile, "Standard Deviation,%.2f\n", stdDev);
 
 	fclose(statsFile);
-
 	for(int i=0; i<numVersion; i++){
 		for(int j=0; j<numQuestions; j++){
 			free(keys[i][j]);
