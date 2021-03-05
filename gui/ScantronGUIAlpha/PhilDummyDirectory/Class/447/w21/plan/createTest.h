@@ -22,15 +22,18 @@
 #define MAXLINES 55
 
 /* Prototypes */
-int countQuestions(DIR *d, struct dirent *dir);
-char** loadQuestions(DIR *d, struct dirent *dir, int fileCount);
+void usage(char *prog);
+void buildIndex(int *ind, int n);
+
+int countFiles(DIR *d, struct dirent *dir, unsigned char type);
+char** loadFiles(DIR *d, struct dirent *dir, unsigned char type, int fileCount);
 
 int parseQuestion(FILE *fp, FILE *afp, char **fileList, int questionC, int i);
 void writeQuestionToFile(FILE *fp, FILE *cQ);
 void writeAnswersToFile(FILE *fp, FILE *key, FILE *cQ, char *keyBuf, int ans, int d, bool randomize);
 
-void generateExams(char **fileList, char **courseInfo, int questionC, int formC);
-void createExam(FILE *key, char **fileList, char **courseInfo, char form, int questionC, int formC, int currForm);
+void generateExams(char **fileList, int questionC, int formC);
+void createExam(FILE *key, char **fileList, char form, int questionC, int formC, int currForm);
 
 int setupKeyBuffer(char *keyBuf, int questionNum);
 void shuffle(int *array, size_t n);
