@@ -21,3 +21,9 @@ So, if I was going to have a test question bank it might be:
 
 And then I'd want the tests to  be written to the ../Class/447/qtr/plan
 directory .. which might be doable by running it in that directory.
+
+Proposed solution:
+Run form /test-db
+for each subfolder:
+  ask how many questions from each
+  add those to filelist
