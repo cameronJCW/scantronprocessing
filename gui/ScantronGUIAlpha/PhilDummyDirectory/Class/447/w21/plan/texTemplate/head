@@ -1,0 +1,13 @@
+\documentclass{article}
+\oddsidemargin 0in
+\textwidth 6.5in
+\headsep 0in
+\textheight 8.5in
+\pagenumbering{arabic}
+%set to 0 real, 1 answers
+\newcount\showans
+\showans=1
+\newcommand{\ans}[1]{ \ifnum\showans=1 {\bf ANSWER #1.} \fi }
+\begin{document}
+{ \Large
+\begin{center}
