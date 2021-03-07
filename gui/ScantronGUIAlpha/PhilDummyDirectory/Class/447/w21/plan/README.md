@@ -1,7 +1,6 @@
 # Scantron Creation GUI
 > Generate exams in LaTex from a local database of questions.
 
-One to two paragraph statement about your product and what it does.
 The scantron creation GUI can be used to generate complete LaTex exam files using questions made by the user. 
 The GUI allows for the unique naming of exams, along with the choice of how many unique exams to produce. Along with each
 set of exams is an accompanying exam key which is used to grade completed student exams. 
@@ -16,7 +15,7 @@ char *qtr;
 
 NetBSD & Linux:
 
-Navigate to 
+Navigate to ./Class/{classnum}/{qtr}/plan
 
 ```sh
 make
