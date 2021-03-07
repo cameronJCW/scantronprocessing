@@ -7,9 +7,10 @@
 #include <ctype.h>
 
 #define MAXLINE 100
+#define ASCIIBASE 97 //For lower case keys and exams
 
 char* getName(char* wNum, FILE *classList, char* ans);
-int gradeQuestion(char* ans, char* keyAns, int testStats[][4]);
+int gradeQuestion(char* ans, char* keyAns, int testStats[][5]);
 
 int main(int argc, char **argv) {
 	char testLoc[MAXLINE];
@@ -19,7 +20,7 @@ int main(int argc, char **argv) {
 	char wNum[15];
 	double studentScores[MAXLINE*2];
 
-	FILE *testFile, *keyFile, *gradeFile, *statsFile, *classList, *statsFile2;
+	FILE *testFile, *keyFile, *gradeFile, *statsFile, *classList;
 
 	int testIterator = 1;
 	int max = 0;
@@ -64,11 +65,10 @@ int main(int argc, char **argv) {
 	fclose(keyFile);
 
 //initialize array for aggregating statistical information
-	int testStats[numQuestions][4];
-	memset(testStats, 0, numQuestions*4*sizeof(int));
+	int testStats[numQuestions][5];
+	memset(testStats, 0, numQuestions*5*sizeof(int));
 	gradeFile = fopen("grades.csv", "w+");
 	statsFile = fopen("stats.csv", "w+");
-	statsFile2 = fopen("stats2.csv", "w+");
 	fprintf(gradeFile, "name,,mc,essay,total\n");
 
 //Start grabbing and grading exams
@@ -106,9 +106,7 @@ int main(int argc, char **argv) {
 			wasCorrect =  gradeQuestion(ans, keys[version][currentQ-1], testStats);
 			numCorrect += wasCorrect;
 			currentQ++;
-			fprintf(statsFile2, "%d,", wasCorrect);
 		}
-		fprintf(statsFile2, "\n");
 		if(numCorrect > max){
 			max = numCorrect;
 		}
@@ -138,12 +136,12 @@ int main(int argc, char **argv) {
 	double variance;
 	double stdDev;
 
-	fprintf(statsFile, "Question Number,Answer,A,B,C,D,percent correct\n");
+	fprintf(statsFile, "Question Number,Answer,A,B,C,D,E,percent correct\n");
 	for(int i=0; i<numQuestions; i++){
-		double percentCorrect = ((testStats[i][keys[0][i][0] - 65]/numStudent)*100);
-		fprintf(statsFile, "%d,%c,%d,%d,%d,%d,%.2f\n", i+1, keys[0][i][0],\
+		double percentCorrect = ((testStats[i][keys[0][i][0] - ASCIIBASE]/numStudent)*100);
+		fprintf(statsFile, "%d,%c,%d,%d,%d,%d,%d,%.2f\n", i+1, keys[0][i][0],\
 				testStats[i][0], testStats[i][1], testStats[i][2], testStats[i][3],\
-				percentCorrect);
+				testStats[i][4], percentCorrect);
 	}
 	average = average/numStudent;
 	for(int i=0; i < numStudent; i++){
@@ -189,7 +187,7 @@ char* getName(char* wNum, FILE *classList, char* ans){
 	return NULL;
 }
 
-int gradeQuestion(char* ans, char* keyAns, int testStats[][4]){
+int gradeQuestion(char* ans, char* keyAns, int testStats[][5]){
 	char keyVal[strlen(keyAns)+1];
 	strncpy(keyVal, keyAns, sizeof(keyVal));
 
@@ -203,7 +201,7 @@ int gradeQuestion(char* ans, char* keyAns, int testStats[][4]){
 			wasCorrect = 1;
 		}
 		int mapToQuestion = atoi(mapToQ);
-		int qIndx = ans[0] - 65;
+		int qIndx = ans[0] - ASCIIBASE;
 		int standardizedAns = mapToAns[qIndx] - '0';
 
 		testStats[mapToQuestion-1][standardizedAns-1] += 1;
