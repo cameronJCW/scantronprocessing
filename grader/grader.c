@@ -414,7 +414,7 @@ char *getVerticalItem(Image *img, CacheView *cache, int entries, int baseX, int 
 
 char **getAnswers(Image *img, CacheView *cache, int maxQ, int baseX, int baseY) {
 	char **answers = malloc(sizeof(char *) * maxQ);
-	char bubbles[5][3] = {"A \0", "B \0", "C \0", "D \0", "E \0"};
+	char bubbles[5][3] = {"a\0", "b\0", "c\0", "c\0", "e\0"};
 	//iterate over all questions
 	for(int i=0; i<maxQ; i++) {	//which question?
 		int r = i % 50;			//which row? each row is 34 pixels apart
