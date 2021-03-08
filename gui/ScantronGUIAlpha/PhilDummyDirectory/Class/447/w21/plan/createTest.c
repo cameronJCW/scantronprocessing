@@ -50,7 +50,7 @@ void buildTopic(struct topic *t);
  *         -d   -- debug
  */
 
-int main(int argc, char **argv) {
+int cli(int argc, char **argv) {
   extern char *optarg;    /* defined by getopt(3)         */
   int ch;                 /* for use with getopt(3)       */
   int i, j, x;            /* incrementors                 */
