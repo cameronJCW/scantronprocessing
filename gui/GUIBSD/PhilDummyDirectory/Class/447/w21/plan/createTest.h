@@ -30,7 +30,7 @@ char** loadFiles(DIR *d, struct dirent *dir, unsigned char type, int fileCount);
 
 int parseQuestion(FILE *fp, FILE *afp, char **fileList, int questionC, int i);
 void writeQuestionToFile(FILE *fp, FILE *cQ);
-void writeAnswersToFile(FILE *fp, FILE *key, FILE *cQ, char *keyBuf, int ans, int d, bool randomize);
+void writeAnswersToFile(FILE *fp, FILE *key, FILE *cQ, char *keyBuf, int ans, int d);
 
 void generateExams(char **fileList, int questionC, int formC);
 void createExam(FILE *key, char **fileList, char form, int questionC, int formC, int currForm);
@@ -42,5 +42,6 @@ void setCourseName(char *name);
 void setCourseYear(char *year);
 void setTestNum(int num);
 void setTestScore(int score);
+void setRandomize(bool r);
 
 #endif

@@ -448,7 +448,7 @@ int parseQuestion(FILE *fp,                  // File pointer for exam
 
   /* Write answers to file */
   rewind(cQ);
-  writeAnswersToFile(fp, key, cQ, keyBuf, answers, digits, false);
+  writeAnswersToFile(fp, key, cQ, keyBuf, answers, digits);
 
   fclose(cQ);
   return 0;
@@ -537,8 +537,7 @@ void writeAnswersToFile(FILE *fp,                  // File pointer for exam
                         FILE *cQ,                  // File pointer for current question
                         char *keyBuf,              // Buffer used to generate exam key 
                         int ans,                   // Number of answers in question file
-                        int digits,                // Number of digits in key buffer
-                        bool randomize) {          // Whether answer choice order is random
+                        int digits) {              // Number of digits in key buffer
   int i;
   int dCount;
   char buf[LEN];
@@ -553,10 +552,12 @@ void writeAnswersToFile(FILE *fp,                  // File pointer for exam
       fill++;
     }
   }
+
+  int rando[ans];
+  buildIndex(rando, ans);
   
   /* Randomize order of questions */
   if (randomize) { // qL[i] -> qL[rando[i]]
-    int rando[ans];
     shuffle(rando, ans);
   }
   
@@ -565,13 +566,13 @@ void writeAnswersToFile(FILE *fp,                  // File pointer for exam
   for (i = 0; i < ans; i++) {
     dCount = i + digits + 3;
     /* Non-Answer */
-    if (answerList[i][0] == 'A') {   
-      snprintf(buf, sizeof(buf), "  \\item %s", answerList[i] + 2);
+    if (answerList[rando[i]][0] == 'A') {   
+      snprintf(buf, sizeof(buf), "  \\item %s", answerList[rando[i]] + 2);
       fputs(buf, fp);
       keyBuf[dCount] = (i+1) + 48;
     }
     /* Answer */
-    else if (answerList[i][0] == 'X') {  
+    else if (answerList[rando[i]][0] == 'X') {  
       switch(i) {
         case 0:
         correct = 'a'; break;
@@ -585,7 +586,7 @@ void writeAnswersToFile(FILE *fp,                  // File pointer for exam
         correct = 'e'; break;
         }
       char tmp[LEN];
-      snprintf(buf, sizeof(buf), "  \\item %s", answerList[i] + 2);
+      snprintf(buf, sizeof(buf), "  \\item %s", answerList[rando[i]] + 2);
       strcpy(tmp, buf+1);
       if (tmp[strlen(tmp) - 1] == '\n') {
 	      tmp[strlen(tmp) - 1] = '\0';
@@ -617,6 +618,15 @@ void setTestNum(int num) {
 
 void setTestScore(int score) {
   testScore = score;
+}
+
+void setRandomize(bool r) {
+  if (r) {
+    randomize = true;
+  }
+  else {
+    randomize = false;
+  }
 }
 
 /* Arrange the N elements of ARRAY in random order.

@@ -4,7 +4,7 @@
 # Makefile used for scantronGui
 
 CC=gcc
-CFLAGS=-g -Wall
+CFLAGS=-g
 
 SRCS=createTest.c
 OUTF=$(SRCS:.c=.o)

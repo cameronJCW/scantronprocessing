@@ -23,6 +23,7 @@ Fl_Input               *courseNameInput;
 Fl_Input               *courseYearInput;
 Fl_Int_Input           *testNumInput;
 Fl_Int_Input           *testScoreInput;
+Fl_Check_Button        *randomizeButton;
 Fl_Browser             *preview;
 Fl_Multi_Browser       *selector;
 Fl_Native_File_Chooser *fc;
@@ -84,7 +85,7 @@ int main(int argc, char **argv) {
 			25,
 			"Filter:");
   
-  // Make the buttons
+  // Open File Chooser button
   button = new Fl_Button(filter->x()+155,
 			 10,
 			 25,
@@ -104,6 +105,14 @@ int main(int argc, char **argv) {
   ch_extra->add("1|2|3|4");
   ch_extra->value(0);
   ch_extra->callback((Fl_Callback *)extra_callback);
+
+  // Randomize order of questions
+  randomizeButton = new Fl_Check_Button(ch_extra->x(),
+				       ch_extra->y()+30,
+				       25,
+				       25,
+				       "Random:");
+  randomizeButton->align(FL_ALIGN_LEFT);
   
   // File browser: displays selected questions
   selector = new Fl_Multi_Browser(25, 
@@ -207,6 +216,10 @@ void create_exam(Fl_Widget *w, void *v) {
   setCourseYear(year);
   setTestNum(num);
   setTestScore(score);
+  setRandomize(false);
+  if (randomizeButton->value()) {
+    setRandomize(true); 
+  }
   
   generateExams(fileList, fli, forms);
 }
