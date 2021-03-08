@@ -38,4 +38,9 @@ void createExam(FILE *key, char **fileList, char form, int questionC, int formC,
 int setupKeyBuffer(char *keyBuf, int questionNum);
 void shuffle(int *array, size_t n);
 
+void setCourseName(char *name);
+void setCourseYear(char *year);
+void setTestNum(int num);
+void setTestScore(int score);
+
 #endif

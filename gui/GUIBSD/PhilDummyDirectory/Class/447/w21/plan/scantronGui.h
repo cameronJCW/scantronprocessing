@@ -1,8 +1,9 @@
-fndef scantronGui_h
+#ifndef scantronGui_h
 #define scantronGui_h
 #include <stdio.h>
 #include <string.h>
 #include <FL/Fl.H>
+#include <FL/fl_ask.H>
 #include <FL/Fl_Double_Window.H>
 #include <FL/Fl_Menu_Bar.H>
 #include <FL/Fl_Button.H>

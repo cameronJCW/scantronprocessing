@@ -603,6 +603,22 @@ void writeAnswersToFile(FILE *fp,                  // File pointer for exam
   fputs(keyBuf, key);
 }
 
+void setCourseName(char *name) {
+  strncpy(courseName, name, 20);
+}
+
+void setCourseYear(char *year) {
+  strncpy(courseYear, year, 20);
+}
+
+void setTestNum(int num) {
+  testNum = num;
+}
+
+void setTestScore(int score) {
+  testScore = score;
+}
+
 /* Arrange the N elements of ARRAY in random order.
    Taken from Ben Pfaff: https://benpfaff.org/writings/clc/shuffle.html */
 void shuffle(int *array,         // array to be shuffled
