@@ -20,7 +20,7 @@ int main(int argc, char **argv) {
 	char wNum[15];
 	double studentScores[MAXLINE*2];
 
-	FILE *testFile, *keyFile, *gradeFile, *statsFile, *classList;
+	FILE *testFile, *keyFile, *gradeFile, *statsFile, *classList, *statsFile2;
 
 	int testIterator = 1;
 	int max = 0;
@@ -69,6 +69,7 @@ int main(int argc, char **argv) {
 	memset(testStats, 0, numQuestions*5*sizeof(int));
 	gradeFile = fopen("grades.csv", "w+");
 	statsFile = fopen("stats.csv", "w+");
+	statsFile2 = fopen("stats2.csv", "w+");
 	fprintf(gradeFile, "name,,mc,essay,total\n");
 
 //Start grabbing and grading exams
@@ -106,7 +107,9 @@ int main(int argc, char **argv) {
 			wasCorrect =  gradeQuestion(ans, keys[version][currentQ-1], testStats);
 			numCorrect += wasCorrect;
 			currentQ++;
+			fprintf(statsFile2, "	%d	,", wasCorrect);
 		}
+		fprintf(statsFile2, "\n");
 		if(numCorrect > max){
 			max = numCorrect;
 		}
@@ -157,6 +160,7 @@ int main(int argc, char **argv) {
 	fprintf(statsFile, "Standard Deviation,%.2f\n", stdDev);
 
 	fclose(statsFile);
+	fclose(statsFile2);
 	for(int i=0; i<numVersion; i++){
 		for(int j=0; j<numQuestions; j++){
 			free(keys[i][j]);
